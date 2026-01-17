@@ -1,0 +1,17 @@
+{
+  "name": "gamedev-studio",
+  "version": "1.0.0",
+  "description": "GameDev Studio - Visual Game Editor + Engine",
+  "scripts": {
+    "start": "concurrently -n ENGINE,EDITOR,SERVER -c blue,green,yellow \"npm run engine\" \"npm run editor\" \"npm run server\"",
+    "engine": "cd Engine && npm run dev -- --port 5174",
+    "editor": "cd SceneEditor && npm run dev -- --port 5175",
+    "server": "cd SceneEditor && node server.js",
+    "setup": "npm install && cd Engine && npm install && cd ../SceneEditor && npm install",
+    "status": "node scripts/status.js",
+    "stop": "pkill -f 'vite.*5174' ; pkill -f 'vite.*5175' ; pkill -f 'node server.js' ; echo '✅ All servers stopped'"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

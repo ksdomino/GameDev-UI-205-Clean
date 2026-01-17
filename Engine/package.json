@@ -1,0 +1,23 @@
+{
+  "name": "canvas-game-engine",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Professional HTML5 Canvas Game Engine with Mobile Support",
+  "scripts": {
+    "setup": "npm install",
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:android": "vite build && npx cap sync android",
+    "open:android": "npx cap open android",
+    "run:android": "npx cap run android"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}

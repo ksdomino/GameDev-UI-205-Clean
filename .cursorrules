@@ -1,0 +1,144 @@
+# Canvas Engine GameDev UI - Cursor Rules
+
+## 🚨 First Message Protocol (CRITICAL)
+On EVERY new conversation, BEFORE responding to ANY user request:
+1. Read `Engine/llms.txt` (full context, 1100+ lines)
+2. Read `PROGRESS.md` (current session state)
+3. Read `TODO.md` (active tasks)
+4. State where we left off and what the immediate next step is
+
+## Code Edit Rules
+- **Preserve @context and @generated headers** when editing files
+- Do not remove file docblocks or header comments
+- When creating new files, include: `@context Engine/llms.txt`
+
+---
+
+# Architecture Rules
+
+This workspace contains TWO separate applications:
+
+### 1. Engine (`/Engine/`)
+**Purpose:** The game runtime that runs on mobile devices
+
+**Technology:**
+- Vanilla JavaScript ONLY - no frameworks, no npm packages in runtime
+- HTML5 Canvas 2D API for all rendering
+- ES6 modules with import/export
+- Must maintain 60fps on mobile devices
+
+**Constraints:**
+- No React, Vue, or any UI framework
+- No heavy dependencies
+- All timing must use deltaTime (seconds)
+- Assets must follow PO2 (Power of Two) rules for GPU efficiency
+- Memory must be managed carefully (load/unload assets per scene)
+
+**Output:**
+- Builds to static files via Vite
+- Packaged for iOS/Android via Capacitor
+
+---
+
+### 2. GameDev UI (`/SceneEditor/`)
+**Purpose:** Development tool for creating games - runs on localhost only
+
+**Technology:**
+- React + Vite for UI
+- Can use any npm packages needed
+- Communicates with Engine via JSON files and debug bridge
+
+**Screens/Views:**
+1. Project Dashboard - Game overview, scene cards
+2. Scene Flow Map - Visual scene transition graph
+3. Scene Editor - Timeline-based state/layer editor
+4. Debug Panel - Real-time game testing and inspection
+
+**Key Features:**
+- Claude API integration for code/JSON generation
+- Visual timeline editor (drag-drop states)
+- Asset management with PO2 validation
+- Live entity property editing
+- Scene flow visualization
+
+---
+
+## Data Flow
+
+```
+┌─────────────────────┐
+│   GameDev UI        │
+│   (React + Vite)    │
+│   localhost:5175    │
+└─────────┬───────────┘
+          │
+          │ Writes JSON/JS files
+          │ Reads Engine state (debug)
+          ▼
+┌─────────────────────┐
+│   Engine            │
+│   (Vanilla JS)      │
+│   localhost:5174    │
+└─────────┬───────────┘
+          │
+          │ Capacitor build
+          ▼
+┌─────────────────────┐
+│   Mobile App        │
+│   (iOS/Android)     │
+└─────────────────────┘
+```
+
+---
+
+## File Naming Conventions
+
+**Engine:**
+- PascalCase for classes: `Scene.js`, `LayerManager.js`
+- camelCase for instances and functions
+- Scene files: `{SceneName}Scene.js` or `{SceneName}.json`
+
+**GameDev UI:**
+- PascalCase for React components: `SceneEditor.jsx`
+- kebab-case for CSS files: `scene-editor.css`
+- camelCase for utilities: `claudeApi.js`
+
+---
+
+## Canvas Coordinates
+
+- Internal resolution: 1080 × 1920 (9:16 portrait)
+- Origin: Top-left (0, 0)
+- All game logic uses canvas coordinates
+- Letterbox scaling handles device adaptation
+
+---
+
+## The 7 Render Layers
+
+| Index | Name        | Purpose                    |
+|-------|-------------|----------------------------|
+| 0     | BG_FAR      | Far parallax backgrounds   |
+| 1     | BG_NEAR     | Near parallax backgrounds  |
+| 2     | VIDEO_IMAGE | Full-screen images/video   |
+| 3     | SHAPES      | Primitives, particles      |
+| 4     | SPRITES     | Game entities              |
+| 5     | TEXT        | HUD, labels                |
+| 6     | UI_BUTTONS  | Touch UI (always on top)   |
+
+---
+
+## Scene JSON Schema
+
+All scenes can be defined as JSON (see `/SceneEditor/schemas/scene-schema.json`).
+The Engine's `Scene.loadFromConfig(json)` method parses and executes these configs.
+
+---
+
+## AI Code Generation
+
+When using Claude API to generate code:
+1. Always include `Engine/llms.txt` context
+2. Generate JSON configs preferred over raw JS
+3. Validate against schema before writing files
+4. Include performance guardrails from `ASSET_PIPELINE_AND_PERFORMANCE.md`

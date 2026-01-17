@@ -1,0 +1,261 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "scene-config-v1",
+  "title": "Canvas Engine Scene Configuration",
+  "description": "JSON schema for defining game scenes that can be loaded by Scene.loadFromConfig()",
+  "type": "object",
+  "required": ["sceneName", "canvasSize", "states"],
+  "properties": {
+    "sceneName": {
+      "type": "string",
+      "description": "Unique identifier for the scene (e.g., 'TitleScene', 'GameScene')",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*Scene$"
+    },
+    "canvasSize": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "default": 1080 },
+        "height": { "type": "integer", "default": 1920 }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "description": "Assets to preload when scene initializes",
+      "properties": {
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "path"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique asset identifier" },
+              "path": { "type": "string", "description": "Path relative to assets folder" }
+            }
+          }
+        },
+        "audio": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "path"],
+            "properties": {
+              "id": { "type": "string" },
+              "path": { "type": "string" }
+            }
+          }
+        },
+        "videos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "path"],
+            "properties": {
+              "id": { "type": "string" },
+              "path": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "description": "Temporal states within the scene (like timeline segments)",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/state"
+      }
+    }
+  },
+  "definitions": {
+    "state": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "State identifier (e.g., 'TITLE_SPLASH', 'GAMEPLAY')",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "duration": {
+          "type": "number",
+          "description": "Duration in seconds (used for timer transitions)",
+          "minimum": 0
+        },
+        "clearLayers": {
+          "type": "boolean",
+          "description": "Clear all layers when entering this state",
+          "default": false
+        },
+        "layers": {
+          "type": "object",
+          "description": "Entities to add to each layer",
+          "properties": {
+            "BG_FAR": { "$ref": "#/definitions/entityArray" },
+            "BG_NEAR": { "$ref": "#/definitions/entityArray" },
+            "VIDEO_IMAGE": { "$ref": "#/definitions/entityArray" },
+            "SHAPES": { "$ref": "#/definitions/entityArray" },
+            "SPRITES": { "$ref": "#/definitions/entityArray" },
+            "TEXT": { "$ref": "#/definitions/entityArray" },
+            "UI_BUTTONS": { "$ref": "#/definitions/entityArray" }
+          },
+          "additionalProperties": false
+        },
+        "transition": {
+          "$ref": "#/definitions/transition"
+        }
+      }
+    },
+    "entityArray": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/spriteEntity" },
+          { "$ref": "#/definitions/buttonEntity" },
+          { "$ref": "#/definitions/textEntity" },
+          { "$ref": "#/definitions/shapeEntity" }
+        ]
+      }
+    },
+    "spriteEntity": {
+      "type": "object",
+      "required": ["type", "assetId", "x", "y"],
+      "properties": {
+        "type": { "const": "sprite" },
+        "id": { "type": "string", "description": "Optional entity ID for referencing" },
+        "assetId": { "type": "string", "description": "Reference to loaded asset" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "rotation": { "type": "number", "default": 0, "description": "Rotation in radians" },
+        "alpha": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
+        "scaleX": { "type": "number", "default": 1 },
+        "scaleY": { "type": "number", "default": 1 },
+        "visible": { "type": "boolean", "default": true },
+        "animation": { "$ref": "#/definitions/animation" }
+      }
+    },
+    "buttonEntity": {
+      "type": "object",
+      "required": ["type", "text", "x", "y"],
+      "properties": {
+        "type": { "const": "button" },
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "default": 200 },
+        "height": { "type": "number", "default": 80 },
+        "color": { "type": "string", "default": "#4a90e2" },
+        "alpha": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
+        "onClick": {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["switchScene", "switchState", "playSound", "custom"]
+            },
+            "target": { "type": "string", "description": "Scene or state name" },
+            "sound": { "type": "string", "description": "Sound asset ID" }
+          }
+        }
+      }
+    },
+    "textEntity": {
+      "type": "object",
+      "required": ["type", "content", "x", "y"],
+      "properties": {
+        "type": { "const": "text" },
+        "id": { "type": "string" },
+        "content": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "font": { "type": "string", "default": "48px Arial" },
+        "color": { "type": "string", "default": "#ffffff" },
+        "textAlign": { 
+          "type": "string", 
+          "enum": ["left", "center", "right"],
+          "default": "left"
+        },
+        "alpha": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
+        "animation": { "$ref": "#/definitions/animation" }
+      }
+    },
+    "shapeEntity": {
+      "type": "object",
+      "required": ["type", "shape", "x", "y"],
+      "properties": {
+        "type": { "const": "shape" },
+        "id": { "type": "string" },
+        "shape": {
+          "type": "string",
+          "enum": ["rect", "circle", "line"]
+        },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "radius": { "type": "number", "description": "For circles" },
+        "color": { "type": "string", "default": "#ffffff" },
+        "fill": { "type": "boolean", "default": true },
+        "strokeWidth": { "type": "number", "default": 1 },
+        "alpha": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "required": ["type", "duration"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["fadeIn", "fadeOut", "slideIn", "slideOut", "scale", "pulse", "none"]
+        },
+        "duration": { "type": "number", "description": "Duration in seconds" },
+        "direction": {
+          "type": "string",
+          "enum": ["top", "bottom", "left", "right"],
+          "description": "For slide animations"
+        },
+        "easing": {
+          "type": "string",
+          "enum": ["linear", "easeIn", "easeOut", "easeInOut"],
+          "default": "linear"
+        },
+        "delay": { "type": "number", "default": 0, "description": "Delay before starting" }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["timer", "button", "input", "none"],
+          "description": "What triggers the transition"
+        },
+        "duration": {
+          "type": "number",
+          "description": "For timer transitions, how long to wait"
+        },
+        "buttonText": {
+          "type": "string",
+          "description": "For button transitions, which button triggers it"
+        },
+        "key": {
+          "type": "string",
+          "description": "For input transitions, which key triggers it"
+        },
+        "nextState": {
+          "type": "string",
+          "description": "State to transition to within this scene"
+        },
+        "nextScene": {
+          "type": "string",
+          "description": "Scene to switch to"
+        }
+      }
+    }
+  }
+}

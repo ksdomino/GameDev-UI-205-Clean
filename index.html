@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canvas Engine - GameDev UI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin: 0 auto 24px;
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+    }
+    
+    h1 {
+      font-size: 48px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    
+    .subtitle {
+      font-size: 18px;
+      color: #94a3b8;
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    
+    .card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.12);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    
+    .card-icon.engine {
+      background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .card-icon.editor {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .card-icon.debug {
+      background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+    }
+    
+    .card-icon.preview {
+      background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+      box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+    }
+    
+    .card h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .card p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    
+    .card .tech {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .card .tech span {
+      font-size: 11px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      color: #64748b;
+    }
+    
+    .card .status {
+      display: inline-block;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+    
+    .card .status.ready {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+    
+    .card .status.dev {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+    }
+    
+    .card .status.preview-status {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
+    }
+    
+    .info-section {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 40px;
+    }
+    
+    .info-section h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    
+    .info-item {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 16px;
+      border-radius: 10px;
+    }
+    
+    .info-item .label {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    
+    .info-item .value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    footer {
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+    }
+    
+    footer a {
+      color: #818cf8;
+      text-decoration: none;
+    }
+    
+    footer a:hover {
+      text-decoration: underline;
+    }
+    
+    .commands {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px 24px;
+      border-radius: 10px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    
+    .commands .comment {
+      color: #64748b;
+    }
+    
+    .commands .cmd {
+      color: #6ee7b7;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">🎮</div>
+      <h1>Canvas Engine</h1>
+      <p class="subtitle">GameDev UI - Build Top 10 Mobile Games</p>
+    </header>
+    
+    <div class="cards">
+      <!-- GameDev UI Card - Primary -->
+      <a href="SceneEditor/" class="card" onclick="alert('Run: cd SceneEditor && npm install && npm run dev'); return false;" style="grid-column: span 2;">
+        <div class="card-icon editor">🎮</div>
+        <span class="status ready" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #fff;">★ Start Here</span>
+        <h2>GameDev UI</h2>
+        <p>
+          Your main development environment. Create games visually with the Dashboard, 
+          Scene Editor, and Debug Panel. Start with a blank game and build from there.
+        </p>
+        <div class="tech">
+          <span>React</span>
+          <span>Dashboard</span>
+          <span>Scene Editor</span>
+          <span>Debug Panel</span>
+          <span>Any Game Type</span>
+        </div>
+      </a>
+      
+      <!-- Engine Card -->
+      <a href="Engine/index.html" class="card" onclick="alert('Run: cd Engine && npm install && npm run dev'); return false;">
+        <div class="card-icon engine">🎯</div>
+        <span class="status ready">✓ Ready</span>
+        <h2>Game Engine</h2>
+        <p>
+          The runtime that powers your games. Test JSON scenes here. 
+          This is what runs on mobile via Capacitor.
+        </p>
+        <div class="tech">
+          <span>Vanilla JS</span>
+          <span>Canvas 2D</span>
+          <span>1080×1920</span>
+          <span>60fps</span>
+        </div>
+      </a>
+      
+      <!-- Mockup Preview Card -->
+      <a href="jsx-preview/index.html" class="card" onclick="alert('Run: cd jsx-preview && npm run dev'); return false;">
+        <div class="card-icon preview">🎨</div>
+        <span class="status preview-status">Reference</span>
+        <h2>UI Mockups</h2>
+        <p>
+          Design reference mockups showing the target look and feel 
+          at 1920×1080 landscape.
+        </p>
+        <div class="tech">
+          <span>React + Vite</span>
+          <span>1920×1080</span>
+        </div>
+      </a>
+    </div>
+    
+    <div class="info-section">
+      <h3>📋 Quick Start</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">GameDev UI (Start Here!)</div>
+          <div class="value">cd SceneEditor && npm run dev</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Game Engine (Testing)</div>
+          <div class="value">cd Engine && npm run dev</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Game Canvas</div>
+          <div class="value">1080 × 1920 (portrait)</div>
+        </div>
+        <div class="info-item">
+          <div class="label">GameDev UI</div>
+          <div class="value">Responsive (desktop)</div>
+        </div>
+      </div>
+      
+      <div class="commands">
+        <div class="comment"># Terminal 1: Start the Engine (runs on port 5174)</div>
+        <div class="cmd">cd Engine && npm install && npm run dev</div>
+        <div class="comment" style="margin-top: 16px"># Terminal 2: Start the GameDev UI (runs on port 5173)</div>
+        <div class="cmd">cd SceneEditor && npm install && npm run dev</div>
+        <div class="comment" style="margin-top: 16px"># Then open: http://localhost:5173</div>
+      </div>
+      
+      <p style="margin-top: 16px; font-size: 13px; color: #94a3b8;">
+        💡 <strong>Note:</strong> Run both servers in separate terminals for the Debug Panel 
+        to work (Engine embeds in an iframe for live testing).
+      </p>
+    </div>
+    
+    <div class="info-section">
+      <h3>📚 Documentation</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">GameDev UI Guide (ELI10)</div>
+          <div class="value"><a href="SceneEditor/docs/ELI10-ACTION-PLAN.md" style="color: #818cf8;">Simple Guide</a></div>
+        </div>
+        <div class="info-item">
+          <div class="label">GameDev UI (AI Context)</div>
+          <div class="value"><a href="SceneEditor/llms.txt" style="color: #818cf8;">SceneEditor/llms.txt</a></div>
+        </div>
+        <div class="info-item">
+          <div class="label">Engine (AI Context)</div>
+          <div class="value"><a href="Engine/llms.txt" style="color: #818cf8;">Engine/llms.txt</a></div>
+        </div>
+        <div class="info-item">
+          <div class="label">Performance Guide</div>
+          <div class="value"><a href="docs/ASSET_PIPELINE_AND_PERFORMANCE.md" style="color: #818cf8;">Asset Pipeline</a></div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      <p>Canvas Engine GameDev UI • <a href="SceneEditor/NEXT_STEPS.md">Next Steps</a> • <a href=".cursorrules">Architecture Rules</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,655 @@
+# CANVAS ENGINE SCENE EDITOR - LLM CONTEXT FILE
+# Last Updated: 2026-01-13
+# Version: 2.0.0
+# Purpose: AI-powered scene editor for Canvas Engine games
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+1. OVERVIEW
+2. ARCHITECTURE  
+3. SCREEN 1: DEBUG PANEL
+4. SCREEN 2: SCENE EDITOR
+5. DATA STRUCTURES
+6. CLAUDE API INTEGRATION
+7. VALIDATION RULES
+8. DEVELOPMENT PHASES
+9. EXAMPLE SCENE GENERATION
+10. GLOSSARY
+
+================================================================================
+1. OVERVIEW
+================================================================================
+
+Web-based development tool with TWO screens for creating Canvas Engine games 
+(vanilla JavaScript, 1080×1920 portrait mobile games).
+
+TARGET USER: Game developer with JavaScript knowledge, no React experience
+TECH STACK: Vanilla JS, Express.js, Claude API (Anthropic)
+COST: ~$0.03 per scene generation
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         DEVELOPMENT ENVIRONMENT                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   SCREEN 1: DEBUG PANEL              SCREEN 2: SCENE EDITOR                 │
+│   http://localhost:3000/debug        http://localhost:3000/editor           │
+│   ┌─────────────────────────┐        ┌─────────────────────────┐           │
+│   │  Real-time debugging    │        │  Visual timeline editor │           │
+│   │  • FPS monitoring       │        │  • Drag-drop states     │           │
+│   │  • Entity inspector     │        │  • Asset management     │           │
+│   │  • Layer toggles        │        │  • Claude API codegen   │           │
+│   │  • Live property edit   │        │  • One-click export     │           │
+│   └─────────────────────────┘        └─────────────────────────┘           │
+│              ↓                                    ↓                         │
+│         Test scenes ───────────────────── Generate scenes                   │
+│              ↓                                    ↓                         │
+│   ┌──────────────────────────────────────────────────────────────┐         │
+│   │              Canvas Engine: /src/js/scenes/*.js               │         │
+│   └──────────────────────────────────────────────────────────────┘         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+WORKFLOW:
+1. Create scene visually in Scene Editor
+2. Click "Generate Scene" → Claude API creates JavaScript code
+3. File saved to /src/js/scenes/
+4. Switch to Debug Panel to test immediately
+5. Iterate: edit → regenerate → test
+
+================================================================================
+2. ARCHITECTURE
+================================================================================
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              BROWSER (localhost)                              │
+│  ┌────────────────────────────┐     ┌────────────────────────────┐          │
+│  │     DEBUG PANEL            │     │     SCENE EDITOR           │          │
+│  │     (debug.html)           │     │     (editor.html)          │          │
+│  │  • DebugBridge class       │     │  • TimelineEditor class    │          │
+│  │  • Real-time FPS graph     │     │  • StateEditor class       │          │
+│  │  • Entity property editor  │     │  • AssetManager class      │          │
+│  └────────────┬───────────────┘     └──────────────┬─────────────┘          │
+│               │                                     │                        │
+└───────────────┼─────────────────────────────────────┼────────────────────────┘
+                │ Reads game state                    │ HTTP Requests
+                ↓                                     ↓
+┌───────────────────────────┐         ┌────────────────────────────────────────┐
+│    GAME ENGINE            │         │         EXPRESS SERVER (:3000)         │
+│  • Engine.js              │         │                                        │
+│  • SceneManager.js        │         │  GET  /debug      → Debug panel HTML   │
+│  • LayerManager.js        │         │  GET  /editor     → Scene editor HTML  │
+│  • InputHandler.js        │         │  POST /api/generate-scene → Claude API │
+│  • AssetLoader.js         │         │  POST /api/upload-asset → File system  │
+└───────────────────────────┘         │  GET  /api/assets → List files         │
+                                      │  GET  /api/scenes → List scenes        │
+                                      └──────────────┬─────────────────────────┘
+                                                     ↓ HTTPS
+                                      ┌────────────────────────────────────────┐
+                                      │         CLAUDE API (Anthropic)         │
+                                      │  Model: claude-sonnet-4-20250514       │
+                                      │  Cost: ~$0.03 per generation           │
+                                      └────────────────────────────────────────┘
+
+PROJECT STRUCTURE:
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  /Gamedev-Gui/                                                                │
+│  ├── src/js/scenes/          ← GENERATED SCENES GO HERE                      │
+│  │   ├── Scene.js            (base class)                                    │
+│  │   ├── BootScene.js        (loading screen)                                │
+│  │   └── [YourScene].js      ← Claude generates these                        │
+│  ├── public/assets/          ← UPLOADED ASSETS GO HERE                       │
+│  │   ├── images/   ├── music/   ├── sfx/   ├── video/   └── fonts/          │
+│  ├── SceneEditor/            ← TOOL FILES                                    │
+│  │   ├── scene-editor-llms.txt   └── PROJECT_HANDOFF.md                      │
+│  └── llms.txt                ← ENGINE DOCS (for Claude prompt)               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+3. SCREEN 1: DEBUG PANEL
+================================================================================
+
+PURPOSE: Real-time debugging interface while developing/testing games
+VIEWPORT: 1920×1080 landscape
+STATUS: Prototyped
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CANVAS ENGINE DEBUG PANEL                              [Toggle Preview ▼]  │
+├───────────────────────────────────────────────┬─────────────────────────────┤
+│                                               │                             │
+│  SCENE: [QuizIntroScene ▼]                    │    ┌───────────────────┐   │
+│  ──────────────────────────────────────────   │    │                   │   │
+│                                               │    │                   │   │
+│  📊 PERFORMANCE                               │    │    GAME PREVIEW   │   │
+│  ┌─────────────────────────────────────────┐ │    │     480 × 720     │   │
+│  │ FPS: 60  │  Entities: 45  │  Mem: 23 MB │ │    │    (half scale)   │   │
+│  ├─────────────────────────────────────────┤ │    │                   │   │
+│  │ FPS ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃▄▅ │ │    │                   │   │
+│  └─────────────────────────────────────────┘ │    │                   │   │
+│                                               │    └───────────────────┘   │
+│  🎬 LAYERS                                    │                             │
+│  ┌─────────────────────────────────────────┐ │                             │
+│  │ ☑ BG_FAR       (2 entities)             │ │                             │
+│  │ ☑ BG_NEAR      (0 entities)             │ │                             │
+│  │ ☑ VIDEO_IMAGE  (0 entities)             │ │                             │
+│  │ ☑ SHAPES       (12 entities)  ⚠️        │ │                             │
+│  │ ☑ SPRITES      (28 entities)  ⚠️        │ │                             │
+│  │ ☑ TEXT         (3 entities)             │ │                             │
+│  │ ☑ UI_BUTTONS   (2 entities)             │ │                             │
+│  └─────────────────────────────────────────┘ │                             │
+│                                               │                             │
+│  🎮 ENTITIES (SPRITES layer)                  │                             │
+│  ┌─────────────────────────────────────────┐ │                             │
+│  │ ▼ player [Sprite]                       │ │                             │
+│  │   ├─ x: [  240 ] y: [  360 ]           │ │                             │
+│  │   ├─ w: [  128 ] h: [  128 ]           │ │                             │
+│  │   ├─ rotation: [ 0 ] alpha: [ 1.0 ]    │ │                             │
+│  │   └─ ☑ visible  ☑ active                │ │                             │
+│  │ ▶ enemy_01 [Sprite]                     │ │                             │
+│  │ ▶ enemy_02 [Sprite]                     │ │                             │
+│  └─────────────────────────────────────────┘ │                             │
+│                                               │                             │
+│  📦 ASSETS                                    │                             │
+│  ┌─────────────────────────────────────────┐ │                             │
+│  │ 🖼️ player.png (512×512) [Unload]        │ │                             │
+│  │ 🔊 bgm.mp3 (3:24)        [Stop]         │ │                             │
+│  └─────────────────────────────────────────┘ │                             │
+└───────────────────────────────────────────────┴─────────────────────────────┘
+
+FEATURES:
+• Scene Switcher     - Dropdown to jump between scenes instantly
+• FPS Graph          - 60-frame rolling history, color-coded
+• Entity Count       - Per-layer count with warnings when >20
+• Memory Display     - From assetLoader.getCacheStats()
+• Layer Toggles      - Show/hide layers for debugging
+• Entity Inspector   - Click to expand, edit properties live
+• Property Editor    - Change x, y, rotation, alpha in real-time
+• Asset Viewer       - List loaded assets with unload buttons
+• Game Preview       - 480×720 canvas embedded in panel
+
+================================================================================
+4. SCREEN 2: SCENE EDITOR
+================================================================================
+
+PURPOSE: Visual timeline-based scene creation with Claude API code generation
+VIEWPORT: 1920×1080 landscape
+STATUS: To be built (Phases 1-4)
+
+USER WORKFLOW:
+1. Enter scene name (e.g., "QuizIntroScene")
+2. Add states to timeline (visual bars)
+3. Configure each state (duration, layers, assets)
+4. Click "Generate Scene"
+5. Claude API creates complete scene JavaScript
+6. File saved to /src/js/scenes/
+7. Test in Debug Panel
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CANVAS ENGINE SCENE EDITOR                    [Generate Scene] [Load] [New]│
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Scene Name: [ QuizIntroScene                                    ]          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  📅 TIMELINE                                                    [+ Add State]│
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │ 0s      1s      2s      3s      4s      5s      6s      7s      8s     ││
+│  │ ├───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤     ││
+│  │                                                                         ││
+│  │ ┌─────────────────────┐                                                 ││
+│  │ │   TITLE_SPLASH     │◄── drag edge to resize                          ││
+│  │ │   0.0s - 2.0s      │                                                 ││
+│  │ └─────────────────────┘                                                 ││
+│  │                       ┌──────────────────────────────┐                  ││
+│  │                       │     INSTRUCTIONS             │                  ││
+│  │                       │     2.0s - 5.0s              │                  ││
+│  │                       └──────────────────────────────┘                  ││
+│  │                                                       ┌───────────────┐ ││
+│  │                                                       │  COUNTDOWN    │ ││
+│  │                                                       │  5.0s - 8.0s  │ ││
+│  │                                                       └───────────────┘ ││
+│  └─────────────────────────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ⚙️ SELECTED STATE: TITLE_SPLASH                              [Delete State]│
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │  Name: [ TITLE_SPLASH        ]    Duration: [ 2.0 ]s                    ││
+│  │  ☑ Clear all layers when entering this state                            ││
+│  │  Transition:  ◉ Timer    ○ Button click    ○ Input                      ││
+│  │  Next: [ INSTRUCTIONS ▼ ]                                               ││
+│  └─────────────────────────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🎬 LAYER ASSIGNMENT                                                        │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │  BG_FAR:      [ bg_logo.png ▼ ]                                        ││
+│  │               x: [   0 ] y: [   0 ] width: [ 1080 ] height: [ 1920 ]   ││
+│  │               Animation: [ Fade In ▼ ]  Duration: [ 1.0 ]s             ││
+│  │  BG_NEAR:     [ None ▼ ]                                               ││
+│  │  VIDEO_IMAGE: [ None ▼ ]                                               ││
+│  │  SHAPES:      [ None ▼ ]                                               ││
+│  │  SPRITES:     [ None ▼ ]                                               ││
+│  │  TEXT:        [ None ▼ ]                                               ││
+│  │  UI_BUTTONS:  [ None ▼ ]                                               ││
+│  └─────────────────────────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📦 ASSETS                                          [↑ Upload Image/Audio]  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │  🖼️ IMAGES                        🔊 AUDIO                              ││
+│  │  • bg_logo.png    1080×1920      • click.mp3         0.3s              ││
+│  │  • player.png      512×512       • bgm.mp3           3:24              ││
+│  └─────────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
+
+THE 7 RENDER LAYERS (bottom to top):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Layer        │ Index │ Purpose                         │ Entity Types      │
+├──────────────┼───────┼─────────────────────────────────┼───────────────────┤
+│ BG_FAR       │ 0     │ Far parallax backgrounds        │ Sprite            │
+│ BG_NEAR      │ 1     │ Near parallax backgrounds       │ Sprite            │
+│ VIDEO_IMAGE  │ 2     │ Full-screen images/video        │ Sprite, Video     │
+│ SHAPES       │ 3     │ Primitive shapes, particles     │ Custom render     │
+│ SPRITES      │ 4     │ Game characters, objects        │ Sprite, Animated  │
+│ TEXT         │ 5     │ In-game text, HUD elements      │ Text, Sprite      │
+│ UI_BUTTONS   │ 6     │ Touch buttons (always top)      │ Button            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ANIMATION OPTIONS:
+• None             - Instant appearance
+• Fade In          - alpha: 0 → 1
+• Fade Out         - alpha: 1 → 0
+• Slide In Top     - y: -height → targetY
+• Slide In Bottom  - y: 1920 → targetY
+• Slide In Left    - x: -width → targetX
+• Slide In Right   - x: 1080 → targetX
+• Scale In         - scale: 0 → 1
+
+================================================================================
+5. DATA STRUCTURES
+================================================================================
+
+TIMELINE JSON FORMAT (sent to Claude API):
+
+{
+  "sceneName": "QuizIntroScene",
+  "canvasSize": { "width": 1080, "height": 1920 },
+  "states": [
+    {
+      "name": "TITLE_SPLASH",
+      "startTime": 0.0,
+      "duration": 2.0,
+      "clearLayers": false,
+      "layers": {
+        "BG_FAR": [
+          {
+            "type": "sprite",
+            "assetId": "bg_logo",
+            "assetPath": "/assets/images/bg_logo.png",
+            "x": 0, "y": 0,
+            "width": 1080, "height": 1920,
+            "rotation": 0, "alpha": 1,
+            "animation": {
+              "type": "fadeIn",
+              "duration": 1.0
+            }
+          }
+        ],
+        "BG_NEAR": [],
+        "VIDEO_IMAGE": [],
+        "SHAPES": [],
+        "SPRITES": [],
+        "TEXT": [],
+        "UI_BUTTONS": []
+      },
+      "transition": {
+        "type": "timer",
+        "duration": 2.0,
+        "nextState": "INSTRUCTIONS",
+        "nextScene": null
+      }
+    },
+    {
+      "name": "INSTRUCTIONS",
+      "startTime": 2.0,
+      "duration": 3.0,
+      "clearLayers": true,
+      "layers": {
+        "TEXT": [
+          {
+            "type": "sprite",
+            "assetId": "instruction_text",
+            "assetPath": "/assets/images/instruction_text.png",
+            "x": 90, "y": 200,
+            "width": 900, "height": 400
+          }
+        ],
+        "UI_BUTTONS": [
+          {
+            "type": "button",
+            "x": 340, "y": 1200,
+            "width": 400, "height": 120,
+            "text": "Start Quiz",
+            "color": "#4a9eff",
+            "onClick": {
+              "action": "switchScene",
+              "target": "GameScene"
+            }
+          }
+        ]
+      },
+      "transition": {
+        "type": "button",
+        "buttonText": "Start Quiz",
+        "nextScene": "GameScene"
+      }
+    }
+  ],
+  "assets": {
+    "images": [
+      { "id": "bg_logo", "path": "/assets/images/bg_logo.png" },
+      { "id": "instruction_text", "path": "/assets/images/instruction_text.png" }
+    ],
+    "audio": [
+      { "id": "click", "path": "/assets/sfx/click.mp3" }
+    ]
+  }
+}
+
+================================================================================
+6. CLAUDE API INTEGRATION
+================================================================================
+
+PROMPT STRUCTURE:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SYSTEM: You are an expert Canvas Engine game developer.                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ USER MESSAGE CONTAINS:                                                       │
+│                                                                              │
+│ 1. ENGINE DOCS (llms.txt)                                                   │
+│    - Full Canvas Engine documentation                                       │
+│    - Scene patterns, layer system, input handling                           │
+│                                                                              │
+│ 2. ASSET PIPELINE DOCS (relevant sections)                                  │
+│    - PO2 rules, memory management                                           │
+│    - Performance requirements                                               │
+│                                                                              │
+│ 3. SCENE REQUIREMENTS                                                        │
+│    - Scene name, canvas size                                                │
+│    - States with timing and layer assignments                               │
+│    - Assets to load                                                         │
+│    - Transitions between states                                             │
+│                                                                              │
+│ 4. CODE REQUIREMENTS                                                         │
+│    - Use deltaTime (dt) in SECONDS                                          │
+│    - State machine with enum-like states object                             │
+│    - Load assets in async init()                                            │
+│    - Set up entities in populateLayers()                                    │
+│    - Handle transitions in update(dt)                                       │
+│    - Unload assets in exit()                                                │
+│    - ES6 imports, default export                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+API CALL:
+
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.ANTHROPIC_API_KEY,
+    'anthropic-version': '2023-06-01'
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4000,
+    messages: [{ role: 'user', content: prompt }]
+  })
+});
+
+================================================================================
+7. VALIDATION RULES
+================================================================================
+
+SCENE NAME:
+┌────────────────────────────────┬──────────────────┬──────────────────┐
+│ Rule                           │ Valid            │ Invalid          │
+├────────────────────────────────┼──────────────────┼──────────────────┤
+│ Must be PascalCase             │ QuizIntroScene   │ quizIntroScene   │
+│ Must end with "Scene"          │ TitleScene       │ Title            │
+│ Must start with letter         │ MyScene          │ 123Scene         │
+│ No spaces or special chars     │ GameOverScene    │ Game Over Scene  │
+└────────────────────────────────┴──────────────────┴──────────────────┘
+
+STATE NAME:
+┌────────────────────────────────┬──────────────────┬──────────────────┐
+│ Rule                           │ Valid            │ Invalid          │
+├────────────────────────────────┼──────────────────┼──────────────────┤
+│ Must be UPPER_SNAKE_CASE       │ TITLE_SPLASH     │ TitleSplash      │
+│ Must be unique in scene        │ (no duplicates)  │ (duplicate)      │
+│ No spaces                      │ GAME_OVER        │ GAME OVER        │
+└────────────────────────────────┴──────────────────┴──────────────────┘
+
+TIMELINE:
+• At least one state required
+• States are sequential (no overlap)
+• All states must have duration > 0
+• Final state needs nextScene defined
+
+ASSETS:
+• Images: PNG, WebP, JPG only
+• Audio: MP3 only
+• Warn if images not PO2 dimensions
+• Warn if images > 2048×2048
+• Warn if file > 500KB
+
+================================================================================
+8. DEVELOPMENT PHASES
+================================================================================
+
+PHASE 1: BACKEND + SIMPLE EDITOR (Week 1)
+─────────────────────────────────────────
+□ Express server with routes
+□ Claude API integration
+□ File writing to /src/js/scenes/
+□ Simple HTML form with JSON textarea
+□ Test with basic 2-state scene
+
+Files: server.js, claude-api.js, editor.html, .env
+
+PHASE 2: TIMELINE UI (Week 2)
+─────────────────────────────
+□ Visual timeline component
+□ Drag to resize state duration
+□ Click to select state
+□ Add/delete states
+□ State editor panel
+
+Files: timeline.js, state-editor.js
+
+PHASE 3: ASSET MANAGEMENT (Week 2-3)
+────────────────────────────────────
+□ File upload UI
+□ Backend file copying
+□ Asset picker dropdowns
+□ Property editor per layer
+□ PO2 validation warnings
+
+Files: asset-manager.js, layer-assignment.js
+
+PHASE 4: POLISH & DEBUG (Week 3)
+────────────────────────────────
+□ Debug Panel implementation
+□ Animation options
+□ Error handling
+□ Loading states
+□ Keyboard shortcuts
+
+Files: debug.html, debug.js, animations.js
+
+================================================================================
+9. EXAMPLE SCENE GENERATION
+================================================================================
+
+INPUT (from Timeline Editor):
+
+Scene: "QuizIntroScene"
+States:
+  1. TITLE_SPLASH (0-2s) - BG_FAR: bg_logo.png, fade in 1s
+  2. INSTRUCTIONS (2-5s) - Clear, TEXT: instruction.png, BUTTON: "Start Quiz"
+  3. COUNTDOWN (5-8s) - Clear, TEXT: countdown 3,2,1 → GameScene
+
+OUTPUT (Claude generates):
+
+```javascript
+import { Scene } from './Scene.js';
+import { Sprite } from '../entities/Sprite.js';
+import { Button } from '../entities/Button.js';
+
+export default class QuizIntroScene extends Scene {
+  constructor() {
+    super('QuizIntroScene');
+    
+    this.states = {
+      TITLE_SPLASH: 'TITLE_SPLASH',
+      INSTRUCTIONS: 'INSTRUCTIONS',
+      COUNTDOWN: 'COUNTDOWN'
+    };
+    
+    this.currentState = this.states.TITLE_SPLASH;
+    this.stateTimer = 0;
+    this.countdownValue = 3;
+    
+    this.bgLogo = null;
+    this.instructionText = null;
+    this.startButton = null;
+  }
+  
+  async init() {
+    await this.engine.assetLoader.loadImages([
+      { id: 'bg_logo', path: '/assets/images/bg_logo.png' },
+      { id: 'instruction_text', path: '/assets/images/instruction_text.png' }
+    ]);
+  }
+  
+  enter() {
+    super.enter();
+    this.currentState = this.states.TITLE_SPLASH;
+    this.stateTimer = 0;
+  }
+  
+  exit() {
+    super.exit();
+    this.engine.assetLoader.unloadAssets(['bg_logo', 'instruction_text']);
+  }
+  
+  populateLayers() {
+    this.showTitleSplash();
+  }
+  
+  showTitleSplash() {
+    this.bgLogo = new Sprite(0, 0, 1080, 1920);
+    this.bgLogo.setImage(this.engine.assetLoader.getImage('bg_logo'));
+    this.bgLogo.alpha = 0;
+    this.layerManager.addToLayer(this.bgLogo, 'BG_FAR');
+  }
+  
+  showInstructions() {
+    this.layerManager.clearAll();
+    
+    this.instructionText = new Sprite(90, 200, 900, 400);
+    this.instructionText.setImage(this.engine.assetLoader.getImage('instruction_text'));
+    this.layerManager.addToLayer(this.instructionText, 'TEXT');
+    
+    this.startButton = new Button(340, 1200, 400, 120, 'Start Quiz', '#4a9eff', 1, () => {
+      this.sceneManager.switchTo('GameScene');
+    });
+    this.layerManager.addToLayer(this.startButton, 'UI_BUTTONS');
+  }
+  
+  showCountdown() {
+    this.layerManager.clearAll();
+    this.countdownValue = 3;
+    
+    const countdownDisplay = {
+      render: (ctx) => {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 120px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.countdownValue.toString(), 540, 960);
+      }
+    };
+    this.layerManager.addToLayer(countdownDisplay, 'TEXT');
+  }
+  
+  update(dt) {
+    this.stateTimer += dt;
+    
+    switch (this.currentState) {
+      case this.states.TITLE_SPLASH:
+        if (this.bgLogo && this.bgLogo.alpha < 1) {
+          this.bgLogo.alpha = Math.min(this.bgLogo.alpha + dt, 1);
+        }
+        if (this.stateTimer >= 2) {
+          this.currentState = this.states.INSTRUCTIONS;
+          this.stateTimer = 0;
+          this.showInstructions();
+        }
+        break;
+        
+      case this.states.INSTRUCTIONS:
+        if (this.inputHandler.mouse.pressed && this.startButton) {
+          this.startButton.checkClick(
+            this.inputHandler.mouse.x,
+            this.inputHandler.mouse.y
+          );
+        }
+        break;
+        
+      case this.states.COUNTDOWN:
+        this.countdownValue = Math.max(1, 3 - Math.floor(this.stateTimer));
+        if (this.stateTimer >= 3) {
+          this.sceneManager.switchTo('GameScene');
+        }
+        break;
+    }
+  }
+}
+```
+
+================================================================================
+10. GLOSSARY
+================================================================================
+
+┌─────────────────┬────────────────────────────────────────────────────────────┐
+│ Term            │ Definition                                                 │
+├─────────────────┼────────────────────────────────────────────────────────────┤
+│ Scene           │ A screen/level in the game (Title, Game, GameOver)        │
+│ State           │ A temporal phase within a scene (splash, instructions)     │
+│ Layer           │ Z-order rendering layer (BG_FAR, SPRITES, UI_BUTTONS)     │
+│ Entity          │ Game object with render() method (Sprite, Button)          │
+│ Asset           │ Image, audio, or video file                                │
+│ Timeline        │ Visual representation of states over time                  │
+│ deltaTime (dt)  │ Time since last frame in SECONDS (not ms!)                │
+│ State Machine   │ Pattern for managing state transitions                     │
+│ PO2             │ Power of Two (32, 64, 128, 256, 512, 1024, 2048)          │
+│ Transition      │ How a state advances (timer, button, input)                │
+│ DebugBridge     │ Class connecting debug panel to game engine                │
+└─────────────────┴────────────────────────────────────────────────────────────┘
+
+================================================================================
+QUICK START
+================================================================================
+
+# Install dependencies
+npm install express multer dotenv
+
+# Create .env file
+echo "ANTHROPIC_API_KEY=sk-your-key" > .env
+
+# Start server
+node server/server.js
+
+# Open browser
+http://localhost:3000/editor   # Scene Editor
+http://localhost:3000/debug    # Debug Panel
+
+================================================================================
+END OF LLM CONTEXT FILE
+================================================================================

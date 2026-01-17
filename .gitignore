@@ -1,0 +1,134 @@
+# ========================================
+# GameDev UI - Cross-Platform .gitignore
+# For Mac + Windows collaboration
+# ========================================
+
+# ==================== Dependencies ====================
+node_modules/
+.npm-cache/
+.pnpm-store/
+jspm_packages/
+
+# ==================== Build Outputs ====================
+dist/
+build/
+*.local
+.vite/
+
+# ==================== OS Generated ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.lnk
+Desktop.ini
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# ==================== IDE / Editor ====================
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains (WebStorm, IntelliJ)
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ==================== Logs & Debug ====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==================== Environment & Secrets ====================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# ==================== Capacitor / Mobile ====================
+# Android
+Engine/android/.gradle/
+Engine/android/app/build/
+Engine/android/build/
+Engine/android/.idea/
+Engine/android/local.properties
+Engine/android/*.iml
+Engine/android/captures/
+Engine/android/.externalNativeBuild/
+Engine/android/.cxx/
+
+# iOS (if added later)
+Engine/ios/Pods/
+Engine/ios/*.xcworkspace
+Engine/ios/build/
+*.xcuserdata/
+
+# ==================== Temporary & Cache ====================
+*.tmp
+*.temp
+*.cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# ==================== Testing ====================
+coverage/
+.nyc_output/
+
+# ==================== Archives (Don't commit zips) ====================
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ==================== Lock Files (Choose ONE) ====================
+# Uncomment the ones you DON'T use:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ==================== Project Specific ====================
+# Brain/artifacts from Gemini
+.gemini/
+
+# Cursor rules (local preferences)
+# .cursorrules  # Uncomment if you want to share cursor settings
+
+# ==================== Optional: Large Assets ====================
+# Uncomment if you want to use Git LFS or exclude large files
+# *.mp3
+# *.wav
+# *.ogg
+# *.mp4
+# *.webm

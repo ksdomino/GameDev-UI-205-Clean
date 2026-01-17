@@ -1,0 +1,691 @@
+# GAMEDEV UI - LLM CONTEXT FILE
+# Last Updated: 2026-01-17
+# Purpose: AI agent context for the GameDev UI scene editor tool
+# Version: 2.5 - AI-First development, PlayFab integration, context persistence
+
+
+# ================================================================================
+# OVERVIEW
+# ================================================================================
+
+GameDev UI is a React-based visual game development tool for creating 2D mobile games
+that run on the Canvas Engine. It provides a complete workflow from project creation
+to live testing.
+
+Target: 1080x1920 portrait mobile games (packaged via Capacitor)
+Stack: React + Vite (UI), Express (Backend), Vanilla JS (Engine)
+
+# ================================================================================
+# ARCHITECTURE
+# ================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              GAMEDEV UI SYSTEM                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   ┌──────────────┐     HTTP/WS      ┌──────────────┐                            │
+│   │  React App   │ ←───────────────→ │   Express    │                            │
+│   │  (Port 5175) │                   │   Backend    │                            │
+│   │              │                   │  (Port 5176) │                            │
+│   │  - Dashboard │                   │              │                            │
+│   │  - SceneFlow │                   │  - REST API  │                            │
+│   │  - Editor    │                   │  - WebSocket │                            │
+│   │  - Debug     │                   │  - File I/O  │                            │
+│   └──────────────┘                   └──────────────┘                            │
+│          │                                   │                                    │
+│          │ postMessage                       │ File System                        │
+│          ↓                                   ↓                                    │
+│   ┌──────────────┐                   ┌──────────────┐                            │
+│   │ Engine iframe│                   │   projects/  │  ← Project JSON files      │
+│   │  (Port 5174) │                   │   Engine/    │  ← Exported scenes         │
+│   │              │                   │   scenes/    │                            │
+│   │  - Embedded  │                   └──────────────┘                            │
+│   │    mode      │                                                               │
+│   │  - Live test │                                                               │
+│   └──────────────┘                                                               │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+# ================================================================================
+# PROJECT STRUCTURE
+# ================================================================================
+
+SceneEditor/
+├── index.html                 # React app entry
+├── package.json               # Dependencies (react, vite, express, ws)
+├── vite.config.js             # Vite dev server config (port 5175)
+├── server.js                  # Express backend (port 5176)
+├── llms.txt                   # THIS FILE
+├── projects/                  # Saved game projects (JSON)
+├── schemas/
+│   └── scene-schema.json      # JSON Schema for scene validation
+├── examples/
+│   └── TestScene.json         # Example scene configuration
+└── src/
+    ├── main.jsx               # React entry point
+    ├── index.css              # Global styles
+    ├── App.jsx                # Main app with view routing + file watcher
+    ├── services/
+    │   └── api.js             # Backend API + WebSocket client
+    ├── data/
+    │   └── defaultProject.js  # Default project/scene/state templates
+    └── components/
+        ├── ProjectManager.jsx     # Start screen - list/create projects
+        ├── Dashboard.jsx          # Project overview + scene cards
+        ├── SceneFlowMap.jsx       # Node-based scene connection editor
+        ├── SceneEditor.jsx        # Main scene editing interface
+        ├── StateFlowView.jsx      # Visual state machine display
+        ├── EntityPropertyEditor.jsx # Property panel (Visuals + Custom Variables)
+        ├── AIGenerateModal.jsx    # Claude API integration modal
+        ├── BehaviorTreeEditor.jsx # Visual behavior tree editor
+        ├── AnimationCurveEditor.jsx # Visual easing curve editor
+        └── DebugPanel.jsx         # Live game testing with Engine iframe
+
+# ================================================================================
+# VIEWS & NAVIGATION
+# ================================================================================
+
+View Flow:
+┌─────────────┐    ┌───────────┐    ┌─────────────┐    ┌─────────────┐
+│  Projects   │ →  │ Dashboard │ →  │ Scene Editor│ →  │ Debug Panel │
+│  (start)    │    │           │    │             │    │             │
+└─────────────┘    └───────────┘    └─────────────┘    └─────────────┘
+                        │
+                        ↓
+                   ┌───────────┐
+                   │ Flow Map  │ (Scene connections)
+                   └───────────┘
+
+View Details:
+
+1. ProjectManager
+   - Lists all projects from /projects folder
+   - Create new project
+   - Delete project
+   - Shows server connection status
+
+2. Dashboard
+   - Project name (editable)
+   - Stats: scenes, states, entities, assets
+   - Scene cards (click to edit)
+   - Buttons: Flow Map, Debug, Export
+
+3. SceneFlowMap
+   - Visual node graph of scenes
+   - Drag nodes to reposition
+   - Shift+drag to connect scenes
+   - Double-click to open scene editor
+
+4. SceneEditor
+   - State Flow visualization (top)
+   - 4-column layout:
+     - Entities (drag source)
+     - Canvas Preview
+     - Layers (drop target)
+     - Properties (selected entity)
+   - Toolbar: Logic, Curves, AI Generate, Test
+
+5. DebugPanel
+   - Engine embedded via iframe (port 5174)
+   - Run/Stop controls
+   - FPS graph + stats
+   - State navigation buttons
+   - Console log
+
+# ================================================================================
+# DATA STRUCTURES
+# ================================================================================
+
+## Project Structure (stored in /projects/*.json)
+
+{
+  "name": "My Game",
+  "version": "1.0.0",
+  "createdAt": "2026-01-13T...",
+  "updatedAt": "2026-01-13T...",
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "startLevel": 0,
+  "levels": [
+    { "id": "level_0", "name": "Title", "number": 0, "sceneNames": ["Title_Scene_1"] },
+    { "id": "level_1", "name": "Level 1", "number": 1, "sceneNames": ["L1_Scene_1"] }
+  ],
+  "scenes": [Scene, Scene, ...],
+  "assets": {
+    "images": [],
+    "audio": [],
+    "fonts": []
+  },
+  "flowMap": {
+    "positions": { "Title_Scene_1": { "x": 100, "y": 100 }, ... }
+  },
+  "build": {
+    "target": "mobile",
+    "platforms": ["android", "ios"]
+  }
+}
+
+## Scene Naming Convention (MUST FOLLOW)
+
+| Level Type      | Naming Pattern      | Examples                    |
+|-----------------|---------------------|---------------------------   |
+| Title (Level 0) | Title_Scene_{N}     | Title_Scene_1, Title_Scene_2|
+| Gameplay Levels | L{N}_Scene_{M}      | L1_Scene_1, L2_Scene_1      |
+
+- Level 0 is ALWAYS the title/menu level
+- Level 1+ are gameplay levels
+- Scenes within a level increment: L1_Scene_1, L1_Scene_2, L1_Scene_3
+- Helper functions: generateSceneName(levelNumber, sceneNumber), getNextSceneNumber()
+
+## Scene Structure
+
+{
+  "name": "TitleScene",
+  "isStartScene": true,
+  "description": "",
+  "assets": { "images": [], "audio": [] },
+  "states": [State, State, ...],
+  "transitions": [],
+  "behaviorTree": { "nodes": [] },
+  "animationCurve": { "points": [[0,0], [1,1]] }
+}
+
+## State Structure
+
+{
+  "name": "MAIN",
+  "duration": 2.0,
+  "clearLayers": false,
+  "layers": {
+    "BG_FAR": [],
+    "BG_NEAR": [],
+    "VIDEO_IMAGE": [],
+    "SHAPES": [],
+    "SPRITES": [],
+    "TEXT": [],
+    "UI_BUTTONS": []
+  },
+  "transition": {
+    "type": "timer|button|none",
+    "duration": 2.0,
+    "nextState": "STATE_2",
+    "nextScene": null
+  }
+}
+
+## Entity Types
+
+Sprite:
+{
+  "type": "sprite",
+  "id": "sprite_123",
+  "assetId": "background",
+  "x": 540, "y": 960,           // CENTER position (not top-left!)
+  "width": 1080, "height": 1920,
+  "rotation": 0,
+  "alpha": 1,
+  "scaleX": 1, "scaleY": 1,
+  "visible": true,
+  "animation": { "type": "fadeIn", "duration": 0.5, "easing": "easeOut" }
+}
+
+NOTE: All entity x,y coordinates are CENTER-BASED. An entity at (540, 960)
+will be perfectly centered on the 1080x1920 canvas.
+
+Button:
+{
+  "type": "button",
+  "id": "playButton",
+  "text": "PLAY",
+  "x": 540, "y": 1200,
+  "width": 300, "height": 100,
+  "color": "#6366f1",
+  "alpha": 1,
+  "onClick": {
+    "action": "switchScene|switchState|playSound",
+    "target": "GameScene"
+  }
+}
+
+Text:
+{
+  "type": "text",
+  "id": "title",
+  "content": "My Game",
+  "x": 540, "y": 400,
+  "fontSize": 48,              // NEW: Separate font size control
+  "fontFamily": "Arial",       // NEW: Separate font family control
+  "fontWeight": "bold",        // NEW: Separate font weight control
+  "font": "48px Arial",        // LEGACY: Still supported for backward compat
+  "color": "#ffffff",
+  "textAlign": "center",
+  "alpha": 1
+}
+
+Shape:
+{
+  "type": "shape",
+  "id": "rect1",
+  "shape": "rect|circle|line",
+  "x": 100, "y": 100,
+  "width": 200, "height": 200,
+  "radius": 50,  // for circle
+  "color": "#ff0000",
+  "fill": true,
+  "strokeWidth": 2,
+  "alpha": 1
+}
+
+## Game Objects (NEW in v2.0)
+
+Game Objects are reusable entity templates defined at the project level.
+They allow defining properties and custom variables that can be edited
+and linked to scene entities.
+
+Project-level gameObjects array:
+{
+  "gameObjects": [
+    {
+      "id": "PlayerPaddle",
+      "type": "paddle",
+      "visualType": "shape|sprite|animatedSprite",
+      "shape": "rect",
+      "color": "#00ff00",
+      "width": 250,
+      "height": 40,
+      "spriteId": null,           // If visualType is sprite
+      "spritePath": null,
+      "variables": {              // Custom variables (editable in UI)
+        "speed": 800,
+        "isPlayer": true,
+        "startX": 540,
+        "startY": 1700
+      }
+    }
+  ]
+}
+
+Views:
+- GameObjectListView.jsx: Grid of all Game Objects with filtering by type
+- GameObjectDetailView.jsx: Full-page editor for a single Game Object
+
+TODO: When entities are created in scenes, auto-register them as Game Objects
+TODO: Link scene entities to Game Objects with gameObjectRef
+
+## Asset Library (NEW in v2.0)
+
+Centralized asset management for images, sprites, and sounds.
+
+View: AssetLibrary.jsx
+- Tab navigation: Images, Sprites, Sounds
+- Upload via drag-drop or file picker
+- Preview images in grid
+- Delete assets
+
+API Endpoints:
+- GET  /api/assets - List all assets
+- POST /api/assets/upload - Upload asset (base64)
+- DELETE /api/assets/:type/:filename - Delete asset
+
+Asset structure returned by API:
+{
+  "images": [
+    { "id": "...", "filename": "player.png", "path": "/assets/images/player.png", "sizeFormatted": "24 KB" }
+  ],
+  "audio": [...],
+  "sprites": [...]
+}
+
+Sprite Picker (in GameObjectDetailView):
+- When visualType is "sprite", shows grid of images from Asset Library
+- Stores spriteId, spritePath, spriteFilename on the Game Object
+
+# ================================================================================
+# MOBILE DEPLOYMENT (NEW in v2.0)
+# ================================================================================
+
+The GameDev UI supports building and deploying games to Android via Capacitor.
+
+Capacitor is configured in the Engine/ folder (not SceneEditor).
+
+Engine/capacitor.config.json:
+{
+  "appId": "com.gamedev.engine",
+  "appName": "GameDev Engine",
+  "webDir": "dist"
+}
+
+NPM Scripts (Engine/package.json):
+- npm run build        - Build + copy scenes to dist
+- npm run build:android - Build + sync to Android
+- npm run open:android  - Open Android Studio
+
+Workflow:
+1. Export game from UI (Test in Browser or Test on Device button)
+2. Build exports scenes to Engine/public/scenes/
+3. Vite builds to Engine/dist/
+4. cp -r scenes dist/ copies scenes
+5. npx cap sync android syncs to Android project
+6. npx cap open android launches Android Studio
+7. User clicks Run in Android Studio → app installs on phone
+
+Dashboard Buttons:
+- "🌐 Test in Browser" - Exports game, opens Engine in new tab (localhost:5174)
+- "📱 Test on Device" - Exports game, builds, syncs, opens Android Studio
+
+Backend Endpoint:
+POST /api/deploy-android - Full mobile deployment pipeline
+
+First-time setup:
+cd Engine
+npm install
+npx cap add android
+
+# ================================================================================
+# BACKEND API (server.js)
+# ================================================================================
+
+Base URL: http://localhost:5176/api
+
+Endpoints:
+
+GET  /api/health                 - Server status + paths
+GET  /api/projects               - List all projects
+GET  /api/projects/:filename     - Load specific project
+POST /api/projects               - Save project { project, filename }
+DELETE /api/projects/:filename   - Delete project
+
+POST /api/export-scene           - Export scene to Engine { scene, canvasSize }
+POST /api/export-game            - Export entire game { project }
+GET  /api/scenes                 - List exported scenes
+GET  /api/assets                 - List available assets
+
+WebSocket: ws://localhost:5176
+Messages:
+  - FILE_CHANGED { folder, filename, eventType }
+  - SCENE_FILE_CHANGED { filename, eventType }
+
+# ================================================================================
+# ENGINE COMMUNICATION
+# ================================================================================
+
+The Debug Panel embeds the Engine via iframe with ?embedded=true parameter.
+Communication uses postMessage:
+
+GameDev UI → Engine:
+  LOAD_SCENE_CONFIG { sceneName, canvasSize, assets, states }
+  START_ENGINE
+  STOP_ENGINE
+  SWITCH_STATE { stateName }
+  GET_DEBUG_INFO
+
+Engine → GameDev UI:
+  ENGINE_READY { width, height }
+  ENGINE_STARTED
+  ENGINE_STOPPED
+  SCENE_LOADED { sceneName, states }
+  STATE_CHANGED { stateName }
+  DEBUG_INFO { isRunning, sceneName, stateName, fps, layerCounts, totalEntities }
+  - Sent periodically (every 500ms) while running
+
+ERROR { message }
+  - Sent when an error occurs
+
+# ================================================================================
+# HYBRID LOGIC ARCHITECTURE (Flexible Game Types)
+# ================================================================================
+
+To support diverse games (Puzzle, Action, RPG), the engine uses a Hybrid model:
+
+1. **JSON Specs**: Define visuals (x, y, sprites, buttons, layers) in the UI.
+2. **Base Logic**: `ConfigurableScene` handles the generic JSON parsing and rendering.
+3. **Custom Behavior**: Custom JS classes can inherit from `ConfigurableScene` for advanced games.
+   - Use `loadFromConfig(config)` to extract UI-defined variables.
+   - Override `update(deltaTime)` for specialized gameplay logic.
+   - Use `this.variables` or entity `variables` to avoid hardcoding constants.
+
+**BEST PRACTICE**: Always check if a UI property looks like a placeholder (e.g., width=200) before applying it to critical gameplay objects, to avoid scaling regressions.
+# ================================================================================
+# VISUAL EDITORS
+# ================================================================================
+
+## Scene Flow Map
+- Nodes represent scenes
+- Edges represent transitions
+- Drag to reposition (saved to project.flowMap.positions)
+- Shift+drag creates connection
+- Double-click opens scene editor
+
+## State Flow View
+- Horizontal flow of state nodes
+- Color-coded by index
+- Shows duration and transition type
+- Click to select state
+- Arrows show transitions between states
+
+## Behavior Tree Editor
+Node types:
+- Sequence (→): Run children in order
+- Selector (?): Try until success
+- Condition (❓): Check condition
+- Action (⚡): Perform action
+- Wait (⏱️): Delay
+- Loop (🔄): Repeat
+
+Condition options: score_gt, score_lt, timer_done, button_pressed, entity_visible, custom
+Action options: switch_state, switch_scene, play_sound, set_score, show_entity, hide_entity, animate, custom
+
+## Animation Curve Editor
+- X axis: Time (0-1)
+- Y axis: Value (0-1+)
+- Click to add points
+- Drag points to adjust
+- Presets: Linear, Ease In, Ease Out, Ease In Out, Bounce, Elastic
+- Live preview animation
+
+# ================================================================================
+# CLAUDE API INTEGRATION
+# ================================================================================
+
+The AI Generate modal (AIGenerateModal.jsx) calls Claude API directly from browser.
+API key stored in localStorage.
+
+Generation Modes:
+1. Entities - Generate entities array for current state/layer
+2. State - Generate complete state with layers
+3. Full Scene - Generate multiple states
+
+System prompt includes:
+- Canvas dimensions
+- Layer names
+- Entity type schemas
+- Animation options
+- Current scene/state context
+
+Response: Raw JSON (entities array, state object, or states array)
+
+# ================================================================================
+# FILE WATCHING / IDE SYNC
+# ================================================================================
+
+The backend server watches:
+- /projects/*.json - Project files
+- /Engine/public/scenes/*.json - Exported scenes
+
+When files change externally (e.g., edited in Cursor/VSCode):
+1. fs.watch detects change
+2. Server broadcasts via WebSocket
+3. React app receives FILE_CHANGED message
+4. If current project, auto-reloads from disk
+
+This enables two-way sync between GameDev UI and IDE.
+
+# ================================================================================
+# RUNNING THE SYSTEM
+# ================================================================================
+
+Three servers must run simultaneously:
+
+Terminal 1 - Backend (filesystem access):
+  cd SceneEditor && npm run server
+  → http://localhost:5176
+
+Terminal 2 - GameDev UI (React app):
+  cd SceneEditor && npm run dev
+  → http://localhost:5175
+
+Terminal 3 - Engine (game runtime):
+  cd Engine && npm run dev
+  → http://localhost:5174
+
+Or combined:
+  cd SceneEditor && npm run start  (backend + React)
+  cd Engine && npm run dev         (still needed separately)
+
+# ================================================================================
+# KEY COMPONENTS REFERENCE
+# ================================================================================
+
+App.jsx
+- State: view, project, projectFilename, selectedSceneIndex, backendConnected, saveStatus
+- Auto-saves to backend on project change (1s debounce)
+- WebSocket listener for file changes
+- Navigation: openSceneEditor, openDashboard, openDebugPanel, openFlowMap, openProjectManager
+
+Dashboard.jsx
+- Props: project, updateProject, onOpenScene, onOpenDebug, onOpenProjects, onOpenFlowMap, onExportGame, saveStatus
+- Scene cards with rename/delete/setStart
+- Stats display
+- Getting started tips
+
+SceneEditor.jsx
+- Props: project, updateProject, sceneIndex, onBack, onOpenDebug
+- State: selectedStateIndex, selectedEntityKey, draggedEntityType, dragOverLayer, showAIModal, showBehaviorTree, showAnimationCurve
+- Drag-drop: Entity types → Layers
+- Modals: AI Generate, Behavior Tree, Animation Curves
+
+DebugPanel.jsx
+- Props: project, sceneIndex, onBack
+- State: isEngineReady, isRunning, debugInfo, logs, fpsHistory, engineError
+- iframe src: http://localhost:5174?embedded=true
+- postMessage communication with Engine
+
+# ================================================================================
+# COMMON TASKS
+# ================================================================================
+
+Adding a new entity type:
+1. Add to ENTITY_TYPES in defaultProject.js
+2. Add property handling in EntityPropertyEditor.jsx
+3. Update createDefaultEntity in SceneEditor.jsx
+4. Update CanvasPreview rendering
+
+Adding a new view:
+1. Create component in src/components/
+2. Add state + navigation function in App.jsx
+3. Add render condition in App.jsx
+4. Add navigation button to relevant screens
+
+Adding backend endpoint:
+1. Add route in server.js
+2. Add function in src/services/api.js
+3. Call from React component
+
+# ================================================================================
+# GLOSSARY
+# ================================================================================
+
+- Project: Complete game configuration (scenes, assets, settings)
+- Scene: A screen/level in the game (Title, Game, GameOver)
+- State: Temporal phase within a scene (Intro, Playing, Paused)
+- Layer: Z-order render layer (BG_FAR through UI_BUTTONS)
+- Entity: Game object (Sprite, Button, Text, Shape)
+- Flow Map: Visual node graph of scene connections
+- State Flow: Visual timeline of states within a scene
+- Behavior Tree: Visual logic tree for game AI/flow
+
+# ================================================================================
+# DATA-FIRST DEVELOPMENT (FOR AI VIBECODING)
+# ================================================================================
+
+When an AI vibecodes a game, it should create /data/ files FIRST (or concurrently).
+The GameDev UI reads these files to enable visual editing and modding.
+
+## Reading Data Files
+
+The GameDev UI should read from Engine/data/:
+- /data/manifest.json - Game metadata + actor list
+- /data/actors/{ActorId}.json - Actor definitions with variables
+- /data/logic/{ActorId}.logic.json - Node graphs for each actor
+
+## Actor Format (Read from /data/actors/)
+
+{
+  "id": "ActorId",
+  "type": "entity_type",
+  "sprite": { "shape": "circle", "radius": 50, "color": "#ffffff" },
+  "variables": {
+    "positionX": { "type": "number", "default": 540 },
+    "speed": { "type": "number", "default": 500 }
+  },
+  "tags": ["tag1", "tag2"]
+}
+
+## Logic Format (Read from /data/logic/)
+
+{
+  "actorId": "ActorId",
+  "nodes": [
+    { "id": "n1", "type": "event", "subtype": "OnUpdate", ... },
+    { "id": "n2", "type": "action", "subtype": "Move", ... }
+  ],
+  "connections": [
+    { "from": { "nodeId": "n1", "outputId": "exec" }, "to": { "nodeId": "n2", "inputId": "exec" } }
+  ]
+}
+
+## The 5 Node Types (UI should color-code)
+
+| Type     | Color   | Purpose           |
+|----------|---------|-------------------|
+| event    | 🔴 Red   | Triggers chains   |
+| variable | 🟢 Green | Read/write data   |
+| logic    | 🟡 Yellow| Math/compare      |
+| flow     | 🟠 Orange| Decisions         |
+| action   | 🔵 Blue  | Game actions      |
+
+## Two Output Modes
+
+When user edits in GameDev UI:
+
+A) Real-time sync: Send changes to Engine via postMessage
+B) Generate IDE Prompt: Export text for user to paste into IDE
+
+================================================================================
+AI Behavior & Trigger Rules
+================================================================================
+
+Project Documentation Files (in project root):
+- TODO.md      - Task list with priorities and completion status
+- PROGRESS.md  - Chronological log of changes and current state
+- NOTES.md     - Architecture decisions, file locations, quick reference
+
+Trigger: [Handover Protocol]
+
+Activation Words: "bye", "done", "handover", "back soon", "finished"
+
+Action: Immediately update PROGRESS.md with today's changes and TODO.md with the next task. Summarize the status in 2 sentences. Do not ask for permission; just do it.
+
+Trigger: [Briefing Protocol]
+
+Activation Words: "hi", "hello", "morning", "let's go", "yo"
+
+Action: Read llms.txt, TODO.md, NOTES.md, and the last entry of PROGRESS.md. State exactly where we left off and what the immediate next step is.
+
+# ================================================================================
+# END OF LLM CONTEXT FILE
+# ================================================================================
+

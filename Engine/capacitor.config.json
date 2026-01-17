@@ -1,0 +1,8 @@
+{
+    "appId": "com.gamedev.engine",
+    "appName": "GameDev Engine",
+    "webDir": "dist",
+    "server": {
+        "androidScheme": "https"
+    }
+}
