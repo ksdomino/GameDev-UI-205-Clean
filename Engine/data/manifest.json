@@ -1,0 +1,12 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Pong game manifest - overview and actor list",
+  "gameName": "Pong",
+  "description": "Classic 2-player Pong game with AI opponent. Touch/drag to control your paddle, bounce the ball past the opponent to score. First to 5 wins.",
+  "version": "1.0.0",
+  "canvas": { "width": 1080, "height": 1920 },
+  "actors": ["Ball", "PlayerPaddle", "AIPaddle", "ScoreDisplay", "CenterLine"],
+  "scenes": ["Title_Scene_1", "L1_Scene_1"],
+  "startScene": "Title_Scene_1",
+  "createdAt": "2026-01-17T00:00:00Z"
+}

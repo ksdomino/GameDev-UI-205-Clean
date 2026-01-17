@@ -1,0 +1,34 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Pong game design document",
+  "overview": "Classic Pong arcade game. Two paddles on opposite ends of a vertical court. Ball bounces between them. Score when opponent misses.",
+  "mechanics": [
+    {
+      "name": "Ball Movement",
+      "description": "Ball moves in a straight line, bouncing off walls and paddles",
+      "actors": ["Ball"],
+      "triggers": ["OnUpdate", "OnCollision"]
+    },
+    {
+      "name": "Player Control",
+      "description": "Player drags finger horizontally to move paddle left/right",
+      "actors": ["PlayerPaddle"],
+      "triggers": ["OnUpdate", "OnTouch"]
+    },
+    {
+      "name": "AI Control",
+      "description": "AI paddle tracks ball position with slight delay based on difficulty",
+      "actors": ["AIPaddle", "Ball"],
+      "triggers": ["OnUpdate"]
+    },
+    {
+      "name": "Scoring",
+      "description": "When ball exits top or bottom, opposite player scores a point",
+      "actors": ["Ball", "ScoreDisplay"],
+      "triggers": ["OnOutOfBounds"]
+    }
+  ],
+  "winCondition": "First player to reach 5 points wins the game",
+  "loseCondition": "AI reaches 5 points before player",
+  "progression": "Ball speed increases slightly after each successful rally"
+}

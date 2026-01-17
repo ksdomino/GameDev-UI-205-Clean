@@ -1,0 +1,109 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Score display logic - renders scores and checks win condition",
+  "actorId": "ScoreDisplay",
+  "description": "Displays player and AI scores, checks for game over condition.",
+  "nodes": [
+    {
+      "id": "var_playerScore",
+      "type": "variable",
+      "subtype": "GetVariable",
+      "position": { "x": 50, "y": 50 },
+      "outputs": [{ "id": "value", "type": "number", "label": "playerScore" }],
+      "properties": { "variableName": "playerScore", "defaultValue": 0 }
+    },
+    {
+      "id": "var_aiScore",
+      "type": "variable",
+      "subtype": "GetVariable",
+      "position": { "x": 50, "y": 120 },
+      "outputs": [{ "id": "value", "type": "number", "label": "aiScore" }],
+      "properties": { "variableName": "aiScore", "defaultValue": 0 }
+    },
+    {
+      "id": "var_winScore",
+      "type": "variable",
+      "subtype": "GetVariable",
+      "position": { "x": 50, "y": 190 },
+      "outputs": [{ "id": "value", "type": "number", "label": "winScore" }],
+      "properties": { "variableName": "winScore", "defaultValue": 5 }
+    },
+    {
+      "id": "e_score_changed",
+      "type": "event",
+      "subtype": "OnVariableChanged",
+      "position": { "x": 280, "y": 50 },
+      "outputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "variableNames": ["playerScore", "aiScore"] }
+    },
+    {
+      "id": "a_update_display",
+      "type": "action",
+      "subtype": "SetText",
+      "position": { "x": 500, "y": 50 },
+      "inputs": [{ "id": "exec", "type": "execution" }, { "id": "text", "type": "string" }],
+      "properties": { "format": "{playerScore} - {aiScore}" }
+    },
+    {
+      "id": "l_check_player_win",
+      "type": "logic",
+      "subtype": "GreaterOrEqual",
+      "position": { "x": 700, "y": 50 },
+      "inputs": [{ "id": "a", "type": "number" }, { "id": "b", "type": "number" }],
+      "outputs": [{ "id": "result", "type": "boolean" }]
+    },
+    {
+      "id": "l_check_ai_win",
+      "type": "logic",
+      "subtype": "GreaterOrEqual",
+      "position": { "x": 700, "y": 150 },
+      "inputs": [{ "id": "a", "type": "number" }, { "id": "b", "type": "number" }],
+      "outputs": [{ "id": "result", "type": "boolean" }]
+    },
+    {
+      "id": "f_player_wins",
+      "type": "flow",
+      "subtype": "Branch",
+      "position": { "x": 900, "y": 50 },
+      "inputs": [{ "id": "exec", "type": "execution" }, { "id": "condition", "type": "boolean" }],
+      "outputs": [{ "id": "true", "type": "execution" }, { "id": "false", "type": "execution" }]
+    },
+    {
+      "id": "f_ai_wins",
+      "type": "flow",
+      "subtype": "Branch",
+      "position": { "x": 900, "y": 150 },
+      "inputs": [{ "id": "exec", "type": "execution" }, { "id": "condition", "type": "boolean" }],
+      "outputs": [{ "id": "true", "type": "execution" }, { "id": "false", "type": "execution" }]
+    },
+    {
+      "id": "a_player_win_state",
+      "type": "action",
+      "subtype": "SwitchState",
+      "position": { "x": 1100, "y": 50 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "stateName": "PLAYER_WINS" }
+    },
+    {
+      "id": "a_ai_win_state",
+      "type": "action",
+      "subtype": "SwitchState",
+      "position": { "x": 1100, "y": 150 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "stateName": "AI_WINS" }
+    }
+  ],
+  "connections": [
+    { "id": "c1", "from": { "nodeId": "e_score_changed", "outputId": "exec" }, "to": { "nodeId": "a_update_display", "inputId": "exec" } },
+    { "id": "c2", "from": { "nodeId": "var_playerScore", "outputId": "value" }, "to": { "nodeId": "l_check_player_win", "inputId": "a" } },
+    { "id": "c3", "from": { "nodeId": "var_winScore", "outputId": "value" }, "to": { "nodeId": "l_check_player_win", "inputId": "b" } },
+    { "id": "c4", "from": { "nodeId": "var_aiScore", "outputId": "value" }, "to": { "nodeId": "l_check_ai_win", "inputId": "a" } },
+    { "id": "c5", "from": { "nodeId": "var_winScore", "outputId": "value" }, "to": { "nodeId": "l_check_ai_win", "inputId": "b" } },
+    { "id": "c6", "from": { "nodeId": "a_update_display", "outputId": "exec" }, "to": { "nodeId": "f_player_wins", "inputId": "exec" } },
+    { "id": "c7", "from": { "nodeId": "l_check_player_win", "outputId": "result" }, "to": { "nodeId": "f_player_wins", "inputId": "condition" } },
+    { "id": "c8", "from": { "nodeId": "f_player_wins", "outputId": "true" }, "to": { "nodeId": "a_player_win_state", "inputId": "exec" } },
+    { "id": "c9", "from": { "nodeId": "f_player_wins", "outputId": "false" }, "to": { "nodeId": "f_ai_wins", "inputId": "exec" } },
+    { "id": "c10", "from": { "nodeId": "l_check_ai_win", "outputId": "result" }, "to": { "nodeId": "f_ai_wins", "inputId": "condition" } },
+    { "id": "c11", "from": { "nodeId": "f_ai_wins", "outputId": "true" }, "to": { "nodeId": "a_ai_win_state", "inputId": "exec" } }
+  ]
+}

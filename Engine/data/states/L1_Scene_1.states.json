@@ -1,0 +1,56 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "State machine for main gameplay scene",
+  "sceneName": "L1_Scene_1",
+  "states": [
+    {
+      "name": "PLAYING",
+      "description": "Active gameplay - ball moving, paddles controllable",
+      "duration": 0,
+      "activeActors": ["Ball", "PlayerPaddle", "AIPaddle", "ScoreDisplay", "CenterLine"],
+      "transitions": [
+        { "trigger": "scoreReached", "target": "playerScore", "value": 5, "nextState": "PLAYER_WINS" },
+        { "trigger": "scoreReached", "target": "aiScore", "value": 5, "nextState": "AI_WINS" }
+      ]
+    },
+    {
+      "name": "POINT_SCORED",
+      "description": "Brief pause after a point is scored",
+      "duration": 1.0,
+      "activeActors": ["PlayerPaddle", "AIPaddle", "ScoreDisplay", "CenterLine"],
+      "onEnter": [
+        { "action": "playSound", "soundId": "score" },
+        { "action": "resetBall" }
+      ],
+      "transitions": [
+        { "trigger": "timer", "duration": 1.0, "nextState": "PLAYING" }
+      ]
+    },
+    {
+      "name": "PLAYER_WINS",
+      "description": "Player has won the game",
+      "duration": 0,
+      "activeActors": ["ScoreDisplay"],
+      "onEnter": [
+        { "action": "playSound", "soundId": "win" },
+        { "action": "showText", "text": "YOU WIN!", "x": 540, "y": 700, "fontSize": 96, "color": "#4ade80" }
+      ],
+      "transitions": [
+        { "trigger": "touch", "nextScene": "Title_Scene_1" }
+      ]
+    },
+    {
+      "name": "AI_WINS",
+      "description": "AI has won the game",
+      "duration": 0,
+      "activeActors": ["ScoreDisplay"],
+      "onEnter": [
+        { "action": "playSound", "soundId": "lose" },
+        { "action": "showText", "text": "GAME OVER", "x": 540, "y": 700, "fontSize": 96, "color": "#f87171" }
+      ],
+      "transitions": [
+        { "trigger": "touch", "nextScene": "Title_Scene_1" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "AI paddle - computer controlled opponent",
+  "id": "AIPaddle",
+  "type": "paddle",
+  "description": "The AI opponent's paddle at the top of the screen. Tracks ball with configurable difficulty.",
+  "layer": "SPRITES",
+  "sprite": {
+    "shape": "rect",
+    "width": 200,
+    "height": 30,
+    "color": "#f87171",
+    "assetId": null
+  },
+  "variables": {
+    "positionX": { "type": "number", "default": 540, "description": "Current X position (centered)" },
+    "positionY": { "type": "number", "default": 170, "description": "Current Y position (near top)" },
+    "speed": { "type": "number", "default": 450, "description": "Movement speed in pixels per second" },
+    "difficulty": { "type": "number", "default": 0.7, "description": "Reaction factor 0-1 (1 = perfect tracking)" },
+    "minX": { "type": "number", "default": 100, "description": "Left boundary (paddle center)" },
+    "maxX": { "type": "number", "default": 980, "description": "Right boundary (paddle center)" }
+  },
+  "tags": ["paddle", "ai", "enemy"],
+  "collidesWith": ["Ball"],
+  "behaviors": ["aiControl"]
+}

@@ -1,0 +1,25 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Player paddle - controlled by touch input",
+  "id": "PlayerPaddle",
+  "type": "paddle",
+  "description": "The player's paddle at the bottom of the screen. Controlled by touch/mouse drag.",
+  "layer": "SPRITES",
+  "sprite": {
+    "shape": "rect",
+    "width": 200,
+    "height": 30,
+    "color": "#4ade80",
+    "assetId": null
+  },
+  "variables": {
+    "positionX": { "type": "number", "default": 540, "description": "Current X position (centered)" },
+    "positionY": { "type": "number", "default": 1750, "description": "Current Y position (near bottom)" },
+    "speed": { "type": "number", "default": 1000, "description": "Movement speed in pixels per second" },
+    "minX": { "type": "number", "default": 100, "description": "Left boundary (paddle center)" },
+    "maxX": { "type": "number", "default": 980, "description": "Right boundary (paddle center)" }
+  },
+  "tags": ["paddle", "player"],
+  "collidesWith": ["Ball"],
+  "behaviors": ["playerControl"]
+}

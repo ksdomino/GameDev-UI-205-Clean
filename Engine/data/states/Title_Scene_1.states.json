@@ -1,0 +1,16 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "State machine for Title scene",
+  "sceneName": "Title_Scene_1",
+  "states": [
+    {
+      "name": "MAIN",
+      "description": "Main title screen state",
+      "duration": 0,
+      "activeActors": [],
+      "transitions": [
+        { "trigger": "buttonClick", "buttonId": "playButton", "nextScene": "L1_Scene_1" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Ball logic - movement, collision, scoring",
+  "actorId": "Ball",
+  "description": "Ball movement, wall bounce, paddle collision, and scoring logic.",
+  "nodes": [
+    {
+      "id": "var_speed",
+      "type": "variable",
+      "subtype": "GetVariable",
+      "position": { "x": 50, "y": 50 },
+      "outputs": [{ "id": "value", "type": "number", "label": "speed" }],
+      "properties": { "variableName": "speed", "defaultValue": 600 }
+    },
+    {
+      "id": "var_dirX",
+      "type": "variable",
+      "subtype": "GetVariable",
+      "position": { "x": 50, "y": 120 },
+      "outputs": [{ "id": "value", "type": "number", "label": "directionX" }],
+      "properties": { "variableName": "directionX", "defaultValue": 1 }
+    },
+    {
+      "id": "var_dirY",
+      "type": "variable",
+      "subtype": "GetVariable",
+      "position": { "x": 50, "y": 190 },
+      "outputs": [{ "id": "value", "type": "number", "label": "directionY" }],
+      "properties": { "variableName": "directionY", "defaultValue": -1 }
+    },
+    {
+      "id": "e_update",
+      "type": "event",
+      "subtype": "OnUpdate",
+      "position": { "x": 280, "y": 50 },
+      "outputs": [{ "id": "exec", "type": "execution" }, { "id": "deltaTime", "type": "number" }]
+    },
+    {
+      "id": "calc_moveX",
+      "type": "logic",
+      "subtype": "Multiply",
+      "position": { "x": 450, "y": 50 },
+      "inputs": [{ "id": "a", "type": "number" }, { "id": "b", "type": "number" }],
+      "outputs": [{ "id": "result", "type": "number" }],
+      "properties": { "description": "directionX * speed * deltaTime" }
+    },
+    {
+      "id": "calc_moveY",
+      "type": "logic",
+      "subtype": "Multiply",
+      "position": { "x": 450, "y": 120 },
+      "inputs": [{ "id": "a", "type": "number" }, { "id": "b", "type": "number" }],
+      "outputs": [{ "id": "result", "type": "number" }],
+      "properties": { "description": "directionY * speed * deltaTime" }
+    },
+    {
+      "id": "a_move",
+      "type": "action",
+      "subtype": "Move",
+      "position": { "x": 620, "y": 50 },
+      "inputs": [{ "id": "exec", "type": "execution" }, { "id": "dx", "type": "number" }, { "id": "dy", "type": "number" }]
+    },
+    {
+      "id": "e_wall_collision",
+      "type": "event",
+      "subtype": "OnCollision",
+      "position": { "x": 280, "y": 280 },
+      "outputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "targetTag": "wall", "description": "Left/right walls" }
+    },
+    {
+      "id": "a_flip_x",
+      "type": "action",
+      "subtype": "SetVariable",
+      "position": { "x": 500, "y": 280 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "variableName": "directionX", "operation": "multiply", "value": -1 }
+    },
+    {
+      "id": "a_wall_sound",
+      "type": "action",
+      "subtype": "PlaySound",
+      "position": { "x": 700, "y": 280 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "soundId": "wall_hit", "volume": 0.3 }
+    },
+    {
+      "id": "e_paddle_collision",
+      "type": "event",
+      "subtype": "OnCollision",
+      "position": { "x": 280, "y": 400 },
+      "outputs": [{ "id": "exec", "type": "execution" }, { "id": "collider", "type": "actor" }],
+      "properties": { "targetTag": "paddle" }
+    },
+    {
+      "id": "a_flip_y",
+      "type": "action",
+      "subtype": "SetVariable",
+      "position": { "x": 500, "y": 400 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "variableName": "directionY", "operation": "multiply", "value": -1 }
+    },
+    {
+      "id": "a_add_angle",
+      "type": "action",
+      "subtype": "AdjustAngle",
+      "position": { "x": 700, "y": 400 },
+      "inputs": [{ "id": "exec", "type": "execution" }, { "id": "paddleX", "type": "number" }, { "id": "ballX", "type": "number" }],
+      "properties": { "description": "Add angle based on where ball hits paddle" }
+    },
+    {
+      "id": "a_increase_speed",
+      "type": "action",
+      "subtype": "SetVariable",
+      "position": { "x": 900, "y": 400 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "variableName": "speed", "operation": "add", "value": 25, "max": 1200 }
+    },
+    {
+      "id": "a_paddle_sound",
+      "type": "action",
+      "subtype": "PlaySound",
+      "position": { "x": 1100, "y": 400 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "soundId": "paddle_hit", "volume": 0.5 }
+    },
+    {
+      "id": "e_out_bottom",
+      "type": "event",
+      "subtype": "OnOutOfBounds",
+      "position": { "x": 280, "y": 550 },
+      "outputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "edge": "bottom", "description": "Ball passed player paddle" }
+    },
+    {
+      "id": "a_ai_score",
+      "type": "action",
+      "subtype": "AddScore",
+      "position": { "x": 500, "y": 550 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "target": "aiScore", "amount": 1 }
+    },
+    {
+      "id": "a_score_sound_ai",
+      "type": "action",
+      "subtype": "PlaySound",
+      "position": { "x": 700, "y": 550 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "soundId": "score", "volume": 0.7 }
+    },
+    {
+      "id": "a_reset_ball_ai",
+      "type": "action",
+      "subtype": "ResetPosition",
+      "position": { "x": 900, "y": 550 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "x": 540, "y": 960, "resetSpeed": true, "newDirectionY": -1 }
+    },
+    {
+      "id": "e_out_top",
+      "type": "event",
+      "subtype": "OnOutOfBounds",
+      "position": { "x": 280, "y": 700 },
+      "outputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "edge": "top", "description": "Ball passed AI paddle" }
+    },
+    {
+      "id": "a_player_score",
+      "type": "action",
+      "subtype": "AddScore",
+      "position": { "x": 500, "y": 700 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "target": "playerScore", "amount": 1 }
+    },
+    {
+      "id": "a_score_sound_player",
+      "type": "action",
+      "subtype": "PlaySound",
+      "position": { "x": 700, "y": 700 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "soundId": "score", "volume": 0.7 }
+    },
+    {
+      "id": "a_reset_ball_player",
+      "type": "action",
+      "subtype": "ResetPosition",
+      "position": { "x": 900, "y": 700 },
+      "inputs": [{ "id": "exec", "type": "execution" }],
+      "properties": { "x": 540, "y": 960, "resetSpeed": true, "newDirectionY": 1 }
+    }
+  ],
+  "connections": [
+    { "id": "c1", "from": { "nodeId": "e_update", "outputId": "exec" }, "to": { "nodeId": "a_move", "inputId": "exec" } },
+    { "id": "c2", "from": { "nodeId": "var_speed", "outputId": "value" }, "to": { "nodeId": "calc_moveX", "inputId": "a" } },
+    { "id": "c3", "from": { "nodeId": "var_dirX", "outputId": "value" }, "to": { "nodeId": "calc_moveX", "inputId": "b" } },
+    { "id": "c4", "from": { "nodeId": "calc_moveX", "outputId": "result" }, "to": { "nodeId": "a_move", "inputId": "dx" } },
+    { "id": "c5", "from": { "nodeId": "var_speed", "outputId": "value" }, "to": { "nodeId": "calc_moveY", "inputId": "a" } },
+    { "id": "c6", "from": { "nodeId": "var_dirY", "outputId": "value" }, "to": { "nodeId": "calc_moveY", "inputId": "b" } },
+    { "id": "c7", "from": { "nodeId": "calc_moveY", "outputId": "result" }, "to": { "nodeId": "a_move", "inputId": "dy" } },
+    { "id": "c8", "from": { "nodeId": "e_wall_collision", "outputId": "exec" }, "to": { "nodeId": "a_flip_x", "inputId": "exec" } },
+    { "id": "c9", "from": { "nodeId": "a_flip_x", "outputId": "exec" }, "to": { "nodeId": "a_wall_sound", "inputId": "exec" } },
+    { "id": "c10", "from": { "nodeId": "e_paddle_collision", "outputId": "exec" }, "to": { "nodeId": "a_flip_y", "inputId": "exec" } },
+    { "id": "c11", "from": { "nodeId": "a_flip_y", "outputId": "exec" }, "to": { "nodeId": "a_add_angle", "inputId": "exec" } },
+    { "id": "c12", "from": { "nodeId": "a_add_angle", "outputId": "exec" }, "to": { "nodeId": "a_increase_speed", "inputId": "exec" } },
+    { "id": "c13", "from": { "nodeId": "a_increase_speed", "outputId": "exec" }, "to": { "nodeId": "a_paddle_sound", "inputId": "exec" } },
+    { "id": "c14", "from": { "nodeId": "e_out_bottom", "outputId": "exec" }, "to": { "nodeId": "a_ai_score", "inputId": "exec" } },
+    { "id": "c15", "from": { "nodeId": "a_ai_score", "outputId": "exec" }, "to": { "nodeId": "a_score_sound_ai", "inputId": "exec" } },
+    { "id": "c16", "from": { "nodeId": "a_score_sound_ai", "outputId": "exec" }, "to": { "nodeId": "a_reset_ball_ai", "inputId": "exec" } },
+    { "id": "c17", "from": { "nodeId": "e_out_top", "outputId": "exec" }, "to": { "nodeId": "a_player_score", "inputId": "exec" } },
+    { "id": "c18", "from": { "nodeId": "a_player_score", "outputId": "exec" }, "to": { "nodeId": "a_score_sound_player", "inputId": "exec" } },
+    { "id": "c19", "from": { "nodeId": "a_score_sound_player", "outputId": "exec" }, "to": { "nodeId": "a_reset_ball_player", "inputId": "exec" } }
+  ]
+}

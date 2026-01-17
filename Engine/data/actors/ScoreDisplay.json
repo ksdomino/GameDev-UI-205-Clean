@@ -1,0 +1,27 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Score display - shows player and AI scores",
+  "id": "ScoreDisplay",
+  "type": "ui",
+  "description": "Displays the current score for both players at the center of the screen.",
+  "layer": "TEXT",
+  "sprite": {
+    "shape": "text",
+    "fontSize": 120,
+    "fontFamily": "Arial",
+    "fontWeight": "bold",
+    "color": "#ffffff",
+    "alpha": 0.3,
+    "assetId": null
+  },
+  "variables": {
+    "positionX": { "type": "number", "default": 540, "description": "X position (center)" },
+    "positionY": { "type": "number", "default": 960, "description": "Y position (center)" },
+    "playerScore": { "type": "number", "default": 0, "description": "Player's current score" },
+    "aiScore": { "type": "number", "default": 0, "description": "AI's current score" },
+    "winScore": { "type": "number", "default": 5, "description": "Score needed to win" }
+  },
+  "tags": ["ui", "score"],
+  "collidesWith": [],
+  "behaviors": ["displayScore"]
+}

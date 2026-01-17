@@ -4,6 +4,10 @@ import { ConfigurableScene } from './scenes/ConfigurableScene.js';
 import { LogicExtractor } from './core/LogicExtractor.js';
 import { NodeExecutor } from './core/NodeExecutor.js';
 
+// Custom game scenes
+import { PongScene } from './scenes/PongScene.js';
+import { PongTitleScene } from './scenes/PongTitleScene.js';
+
 // Global instances for logic system
 let logicExtractor = null;
 let nodeExecutor = null;
@@ -517,7 +521,14 @@ async function tryLoadGameManifest(engine) {
       console.log(`Found game: ${manifest.name}`);
       console.log(`Start scene: ${manifest.startScene}`);
 
-      // Register all scenes from manifest
+      // Check if manifest specifies custom (code-based) scenes
+      if (manifest.useCustomScenes) {
+        console.log('Using custom game scenes');
+        loadCustomScenes(engine, manifest);
+        return;
+      }
+
+      // Register all scenes from manifest (JSON-based)
       for (const sceneName of manifest.scenes) {
         // If it's a JSON filename (e.g. TitleScene.json), strip .json
         const cleanName = sceneName.replace('.json', '');
@@ -558,6 +569,39 @@ async function tryLoadGameManifest(engine) {
   console.log('Game Engine initialized');
   console.log('Internal resolution: 1080x1920');
   console.log('BootScene loaded - engine is alive');
+}
+
+/**
+ * Load custom (code-based) game scenes
+ * Maps scene names to their JS class implementations
+ */
+async function loadCustomScenes(engine, manifest) {
+  // Map of scene names to their class constructors
+  const customSceneMap = {
+    'Title_Scene_1': PongTitleScene,
+    'L1_Scene_1': PongScene
+  };
+
+  // Register all scenes from manifest
+  for (const sceneName of manifest.scenes) {
+    const SceneClass = customSceneMap[sceneName];
+    if (SceneClass) {
+      const scene = new SceneClass();
+      engine.sceneManager.register(sceneName, scene);
+      console.log(`  Registered custom scene: ${sceneName}`);
+    } else {
+      console.warn(`  No custom scene class found for: ${sceneName}`);
+    }
+  }
+
+  // Start the specified start scene
+  if (manifest.startScene) {
+    console.log(`Switching to start scene: ${manifest.startScene}`);
+    await engine.sceneManager.switchTo(manifest.startScene);
+    engine.start();
+  }
+
+  console.log(`${manifest.name} loaded with custom scenes`);
 }
 
 

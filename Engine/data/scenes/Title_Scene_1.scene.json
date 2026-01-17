@@ -1,0 +1,20 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Title screen scene for Pong",
+  "sceneName": "Title_Scene_1",
+  "description": "Title screen with game logo and Play button",
+  "actors": [],
+  "backgroundAsset": null,
+  "backgroundColor": "#0f172a",
+  "layers": {
+    "BG_FAR": [],
+    "BG_NEAR": [],
+    "VIDEO_IMAGE": [],
+    "SHAPES": ["decorativeLine"],
+    "SPRITES": [],
+    "TEXT": ["titleText", "subtitleText"],
+    "UI_BUTTONS": ["playButton"]
+  },
+  "initialState": "MAIN",
+  "states": ["MAIN"]
+}

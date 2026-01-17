@@ -1,0 +1,9 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Game manifest for Pong - tells engine which scenes to load",
+  "name": "Pong",
+  "version": "1.0.0",
+  "startScene": "Title_Scene_1",
+  "scenes": ["Title_Scene_1", "L1_Scene_1"],
+  "useCustomScenes": true
+}

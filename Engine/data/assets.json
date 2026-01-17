@@ -1,0 +1,13 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Asset manifest for Pong game",
+  "images": [],
+  "audio": [
+    { "id": "paddle_hit", "path": "/assets/sfx/paddle_hit.mp3", "type": "sfx", "usedBy": ["Ball.OnCollision(paddle)"] },
+    { "id": "wall_hit", "path": "/assets/sfx/wall_hit.mp3", "type": "sfx", "usedBy": ["Ball.OnCollision(wall)"] },
+    { "id": "score", "path": "/assets/sfx/score.mp3", "type": "sfx", "usedBy": ["L1_Scene_1.POINT_SCORED"] },
+    { "id": "win", "path": "/assets/sfx/win.mp3", "type": "sfx", "usedBy": ["L1_Scene_1.PLAYER_WINS"] },
+    { "id": "lose", "path": "/assets/sfx/lose.mp3", "type": "sfx", "usedBy": ["L1_Scene_1.AI_WINS"] }
+  ],
+  "fonts": []
+}

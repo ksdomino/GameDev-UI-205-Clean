@@ -1,0 +1,20 @@
+{
+  "_context": "Engine/llms.txt",
+  "_description": "Main gameplay scene for Pong",
+  "sceneName": "L1_Scene_1",
+  "description": "Main Pong gameplay - two paddles, ball, scoring",
+  "actors": ["Ball", "PlayerPaddle", "AIPaddle", "ScoreDisplay", "CenterLine"],
+  "backgroundAsset": null,
+  "backgroundColor": "#0f172a",
+  "layers": {
+    "BG_FAR": [],
+    "BG_NEAR": [],
+    "VIDEO_IMAGE": [],
+    "SHAPES": ["CenterLine", "topWall", "bottomWall", "leftWall", "rightWall"],
+    "SPRITES": ["Ball", "PlayerPaddle", "AIPaddle"],
+    "TEXT": ["ScoreDisplay"],
+    "UI_BUTTONS": []
+  },
+  "initialState": "PLAYING",
+  "states": ["PLAYING", "POINT_SCORED", "PLAYER_WINS", "AI_WINS"]
+}
