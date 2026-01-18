@@ -25,6 +25,13 @@ export class Engine {
     this.audioManager = new AudioManager();
     this.assetLoader = new AssetLoader();
 
+    // NodeExecutor for visual scripting logic (set from main.js when ready)
+    this.nodeExecutor = null;
+
+    // LogicInterpreter for new logic system (optional)
+    this.logicInterpreter = null;
+    this.variableManager = null;
+
     // Letterbox scaling - ensure game stays centered on any device
     this.setupLetterboxScaling();
 
@@ -145,6 +152,11 @@ export class Engine {
 
     // Update Scene (can now check pressed/released flags)
     this.sceneManager.update(deltaTime);
+
+    // Execute visual scripting logic (if registered)
+    if (this.nodeExecutor) {
+      this.nodeExecutor.update(deltaTime);
+    }
   }
 
   /**

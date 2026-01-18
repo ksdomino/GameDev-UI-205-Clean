@@ -527,6 +527,23 @@ async function loadJSONScene(engine, jsonPath) {
       engine.start();
     }
 
+    // Register actors for visual scripting (if present in config)
+    if (config.actors && config.actors.length > 0) {
+      console.log(`[NodeLogic] Found ${config.actors.length} actors in scene config`);
+
+      // Initialize NodeExecutor if needed
+      if (!nodeExecutor) {
+        nodeExecutor = new NodeExecutor(engine);
+        engine.nodeExecutor = nodeExecutor;
+      }
+
+      // Register each actor with its logic sheet
+      for (const actor of config.actors) {
+        nodeExecutor.registerActor(actor);
+        console.log(`[NodeLogic] Registered actor: ${actor.id}`);
+      }
+    }
+
     console.log(`Scene "${config.sceneName}" loaded successfully`);
     console.log('States:', config.states.map(s => s.name).join(' → '));
 
@@ -690,6 +707,8 @@ function handleGetActors(engine) {
   // Initialize NodeExecutor if needed
   if (!nodeExecutor) {
     nodeExecutor = new NodeExecutor(engine);
+    // Register with engine so update() gets called each frame
+    engine.nodeExecutor = nodeExecutor;
   }
 
   // Register actors with executor

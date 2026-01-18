@@ -37,6 +37,7 @@ export class ConfigurableScene extends Scene {
    */
   loadFromConfig(config) {
     this.config = config;
+    this._config = config;  // Also store as _config for internal methods
     this.name = config.sceneName || 'ConfigurableScene';
 
     if (config.canvasSize) {
@@ -150,6 +151,8 @@ export class ConfigurableScene extends Scene {
     // Handle button clicks
     if (this.inputHandler.mouse.pressed) {
       this._handleButtonClicks();
+      // Also check interactive entities for visual scripting OnClick events
+      this._handleInteractiveClicks();
     }
 
     // Check for timer transition
@@ -600,6 +603,93 @@ export class ConfigurableScene extends Scene {
         }
       }
     }
+  }
+
+  /**
+   * Handle clicks on interactive entities (for visual scripting)
+   * @private
+   */
+  _handleInteractiveClicks() {
+    const { x, y } = this.inputHandler.mouse;
+    const nodeExecutor = this.engine.nodeExecutor;
+
+    if (!nodeExecutor) return;
+
+    for (const [id, entity] of this.entities) {
+      // Check if entity is interactive (from config) and was clicked
+      const config = this._getEntityConfig(id);
+      if (!config || !config.interactive) continue;
+
+      // Check if click is within entity bounds
+      const isInBounds = this._isPointInEntity(x, y, entity, config);
+
+      if (isInBounds) {
+        console.log(`[NodeExecutor] OnClick triggered for: ${id}`);
+        nodeExecutor.triggerEvent(id, 'OnClick', {
+          clickX: x,
+          clickY: y
+        });
+
+        // Also trigger for any actor registered with this entity ID
+        // (actors may have different IDs than entities)
+        for (const [actorId] of nodeExecutor.actors) {
+          if (actorId.includes(id) || id.includes(actorId)) {
+            nodeExecutor.triggerEvent(actorId, 'OnClick', {
+              clickX: x,
+              clickY: y
+            });
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Get config for entity by ID
+   * @private
+   */
+  _getEntityConfig(id) {
+    if (!this._config) return null;
+
+    for (const state of this._config.states || []) {
+      for (const entity of state.entities || []) {
+        if (entity.id === id) return entity;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if point is within entity bounds
+   * @private
+   */
+  _isPointInEntity(x, y, entity, config) {
+    if (entity.contains) {
+      // Sprite/Button with proper hit detection
+      return entity.contains(x, y);
+    }
+
+    // Shape-based entities - use config dimensions
+    const ex = entity.x || config.x || 0;
+    const ey = entity.y || config.y || 0;
+    const ew = entity.width || config.width || 100;
+    const eh = entity.height || config.height || 100;
+    const shape = config.shapeType || config.shape || 'rect';
+
+    if (shape === 'circle') {
+      // Circular hit detection
+      const radius = ew / 2;
+      const cx = ex;
+      const cy = ey;
+      const dx = x - cx;
+      const dy = y - cy;
+      return (dx * dx + dy * dy) <= (radius * radius);
+    }
+
+    // Rectangle hit detection (centered origin)
+    const left = ex - ew / 2;
+    const top = ey - eh / 2;
+    return x >= left && x <= left + ew && y >= top && y <= top + eh;
   }
 
   /**

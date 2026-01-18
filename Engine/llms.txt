@@ -160,10 +160,15 @@ PROJECT STRUCTURE
         │   ├── PlayFabService.js   # Economy, Inventory, Leaderboards (AI-First Stack)
         │   ├── MixpanelService.js  # Behavioral analytics (AI-First Stack)
         │   ├── TextureAtlas.js     # TexturePacker sprite atlas loader
-        │   └── TiledLoader.js      # Tiled map editor JSON loader
+        │   ├── TiledLoader.js      # Tiled map editor JSON loader
+        │   ├── LogicExtractor.js   # Extract actors from scene for logic editing
+        │   ├── NodeExecutor.js     # Execute visual scripting node graphs
+        │   ├── LogicInterpreter.js # New logic runtime (alternative to NodeExecutor)
+        │   └── VariableManager.js  # Manage .variables.json files
         ├── entities/
         │   ├── Sprite.js       # Base sprite class
-        │   └── Button.js       # UI button class
+        │   ├── Button.js       # UI button class
+        │   └── ActorBase.js    # Base class for visual-scripted actors
         ├── ui/
         │   ├── UpgradeModal.js # Rogue-lite upgrade selection
         │   ├── VirtualJoystick.js # Twin-stick touch controls

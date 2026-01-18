@@ -1,0 +1,232 @@
+{
+    "_context": "Engine/llms.txt",
+    "_description": "Light toggle logic - OnClick flips isOn variable, changes color",
+    "actorId": "light",
+    "description": "Click to toggle light on/off",
+    "nodes": [
+        {
+            "id": "var_isOn",
+            "type": "variable",
+            "subtype": "GetVariable",
+            "position": {
+                "x": 50,
+                "y": 50
+            },
+            "outputs": [
+                {
+                    "id": "value",
+                    "type": "boolean",
+                    "label": "isOn"
+                }
+            ],
+            "properties": {
+                "variableName": "isOn",
+                "defaultValue": false
+            }
+        },
+        {
+            "id": "e_click",
+            "type": "event",
+            "subtype": "OnClick",
+            "position": {
+                "x": 200,
+                "y": 150
+            },
+            "outputs": [
+                {
+                    "id": "exec",
+                    "type": "execution"
+                }
+            ]
+        },
+        {
+            "id": "a_flip",
+            "type": "action",
+            "subtype": "FlipVariable",
+            "position": {
+                "x": 400,
+                "y": 150
+            },
+            "inputs": [
+                {
+                    "id": "exec",
+                    "type": "execution"
+                }
+            ],
+            "properties": {
+                "variable": "isOn"
+            }
+        },
+        {
+            "id": "a_sound",
+            "type": "action",
+            "subtype": "PlaySound",
+            "position": {
+                "x": 600,
+                "y": 150
+            },
+            "inputs": [
+                {
+                    "id": "exec",
+                    "type": "execution"
+                }
+            ],
+            "properties": {
+                "frequency": 880,
+                "duration": 0.05
+            }
+        },
+        {
+            "id": "e_update",
+            "type": "event",
+            "subtype": "OnUpdate",
+            "position": {
+                "x": 200,
+                "y": 300
+            },
+            "outputs": [
+                {
+                    "id": "exec",
+                    "type": "execution"
+                },
+                {
+                    "id": "deltaTime",
+                    "type": "number"
+                }
+            ]
+        },
+        {
+            "id": "flow_branch",
+            "type": "flow",
+            "subtype": "Branch",
+            "position": {
+                "x": 400,
+                "y": 300
+            },
+            "inputs": [
+                {
+                    "id": "exec",
+                    "type": "execution"
+                },
+                {
+                    "id": "condition",
+                    "type": "boolean"
+                }
+            ],
+            "outputs": [
+                {
+                    "id": "true",
+                    "type": "execution"
+                },
+                {
+                    "id": "false",
+                    "type": "execution"
+                }
+            ]
+        },
+        {
+            "id": "a_setColor_on",
+            "type": "action",
+            "subtype": "SetColor",
+            "position": {
+                "x": 600,
+                "y": 280
+            },
+            "inputs": [
+                {
+                    "id": "exec",
+                    "type": "execution"
+                }
+            ],
+            "properties": {
+                "color": "#ffdd00"
+            }
+        },
+        {
+            "id": "a_setColor_off",
+            "type": "action",
+            "subtype": "SetColor",
+            "position": {
+                "x": 600,
+                "y": 380
+            },
+            "inputs": [
+                {
+                    "id": "exec",
+                    "type": "execution"
+                }
+            ],
+            "properties": {
+                "color": "#333333"
+            }
+        }
+    ],
+    "connections": [
+        {
+            "id": "c1",
+            "from": {
+                "nodeId": "e_click",
+                "outputId": "exec"
+            },
+            "to": {
+                "nodeId": "a_flip",
+                "inputId": "exec"
+            }
+        },
+        {
+            "id": "c2",
+            "from": {
+                "nodeId": "a_flip",
+                "outputId": "exec"
+            },
+            "to": {
+                "nodeId": "a_sound",
+                "inputId": "exec"
+            }
+        },
+        {
+            "id": "c3",
+            "from": {
+                "nodeId": "e_update",
+                "outputId": "exec"
+            },
+            "to": {
+                "nodeId": "flow_branch",
+                "inputId": "exec"
+            }
+        },
+        {
+            "id": "c4",
+            "from": {
+                "nodeId": "var_isOn",
+                "outputId": "value"
+            },
+            "to": {
+                "nodeId": "flow_branch",
+                "inputId": "condition"
+            }
+        },
+        {
+            "id": "c5",
+            "from": {
+                "nodeId": "flow_branch",
+                "outputId": "true"
+            },
+            "to": {
+                "nodeId": "a_setColor_on",
+                "inputId": "exec"
+            }
+        },
+        {
+            "id": "c6",
+            "from": {
+                "nodeId": "flow_branch",
+                "outputId": "false"
+            },
+            "to": {
+                "nodeId": "a_setColor_off",
+                "inputId": "exec"
+            }
+        }
+    ]
+}

@@ -62,10 +62,17 @@
 - Games are built INTO the Engine, deployed as a complete app
 - Export → Build → Sync → Android Studio workflow
 
+### Visual Scripting Runtime (v2.05)
+- **NodeExecutor**: The central runtime for logic execution (`Engine/src/js/core/NodeExecutor.js`).
+- **Interactive Entities**: Entities marked `interactive: true` in JSON trigger `OnClick` events.
+- **Logic Mapping**: `NodeExecutor` maps actor IDs to logic sheets and manages variable state per instance.
+- **Embedded Logic**: Logic sheets can be embedded directly in scene JSON `actors` array for portability.
+
 ### Hybrid Logic Model (Generic Studio)
 - **JSON**: Visual layout and static variables
-- **ConfigurableScene**: Engine base class that parses JSON
-- **Custom JS**: Inherits for custom logic (Physics, AI, specialized systems)
+- **ConfigurableScene**: Engine base class that parses JSON and triggers events (`OnClick`, `OnUpdate`).
+- **LogicInterpreter**: High-level execution of visual scripting node graphs.
+- **Custom JS**: Inherits for custom logic (Physics, AI, specialized systems) - use `useCustomScenes: true`.
 
 ## File Locations
 

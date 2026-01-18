@@ -387,6 +387,31 @@ export class NodeExecutor {
                 this.setVariable(actorId, 'height', currentHeight * factor);
                 return {};
 
+            case 'SetColor':
+                // Set actor's color variable (for rendering)
+                const newColor = props.color || '#ffffff';
+                this.setVariable(actorId, 'color', newColor);
+                console.log(`[NodeExecutor] SetColor: ${actorId} -> ${newColor}`);
+
+                // Also update the actual entity in the scene
+                const currentScene = this.engine.sceneManager?.currentScene;
+                if (currentScene && currentScene.entities) {
+                    // Try to find entity by actorId or entityRef
+                    let entity = currentScene.entities.get(actorId);
+                    if (!entity) {
+                        // Check if actor has an entityRef
+                        const actor = this.actors.get(actorId);
+                        if (actor && actor.entityRef) {
+                            entity = currentScene.entities.get(actor.entityRef);
+                        }
+                    }
+                    if (entity) {
+                        entity.color = newColor;
+                        console.log(`[NodeExecutor] Updated entity color to: ${newColor}`);
+                    }
+                }
+                return {};
+
             default:
                 console.warn(`[NodeExecutor] Unknown action: ${node.subtype}`);
                 return {};
