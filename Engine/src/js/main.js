@@ -291,12 +291,49 @@ async function loadSceneFromConfig(engine, config) {
  */
 async function loadProjectConfig(engine, projectConfig) {
   try {
-    const { scenes, startScene, canvasSize } = projectConfig;
+    const { scenes, startScene, canvasSize, useCustomScenes } = projectConfig;
     console.log(`Loading project with ${scenes.length} scenes, starting at: ${startScene}`);
 
-    // Register ALL scenes first
+    // Check if project uses custom JS scene classes (e.g., PongScene.js)
+    if (useCustomScenes) {
+      console.log('Project uses custom scenes - using registered JS classes');
+      // Custom scenes should already be registered via loadCustomScenes()
+      // Just switch to the start scene
+      const startSceneName = startScene || scenes[0]?.sceneName;
+      if (startSceneName) {
+        // Check if scene is already registered
+        if (engine.sceneManager.scenes.has(startSceneName)) {
+          await engine.sceneManager.switchTo(startSceneName);
+        } else {
+          // Scene not registered - try to use the customSceneMap
+          console.warn(`Custom scene ${startSceneName} not registered, attempting to register...`);
+          await loadCustomScenes(engine, {
+            scenes: scenes.map(s => s.sceneName),
+            startScene: startSceneName
+          });
+        }
+      }
+
+      if (!engine.isRunning) {
+        engine.start();
+      }
+
+      notifyParent({
+        type: 'PROJECT_LOADED',
+        data: {
+          sceneCount: scenes.length,
+          startScene: startSceneName,
+          scenes: scenes.map(s => s.sceneName),
+          useCustomScenes: true
+        }
+      });
+
+      console.log(`Project loaded with ${scenes.length} custom scenes`);
+      return;
+    }
+
+    // JSON-driven scenes: Register ALL scenes using ConfigurableScene
     for (const sceneConfig of scenes) {
-      // All scenes use ConfigurableScene (game-agnostic)
       const scene = new ConfigurableScene();
       scene.loadFromConfig({
         ...sceneConfig,

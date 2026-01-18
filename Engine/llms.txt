@@ -2,7 +2,42 @@
 # Last Updated: 2026-01-17
 # Purpose: Enable AI agents to work on this engine without reading every file
 # Related: See /SceneEditor/llms.txt for the GameDev UI tool
-# Version: 2.5 - Added Levels System and Scene Naming Convention
+# Version: 2.8 - Added dual input controls section, clarified Capacitor purpose
+
+================================================================================
+🚀 QUICK START (READ THIS FIRST!)
+================================================================================
+
+To run the full GameDev system, you need 3 SERVERS running simultaneously.
+
+STEP 1: Kill any existing servers on these ports (ALWAYS DO THIS FIRST):
+  lsof -ti :5174,:5175,:5176 | xargs kill -9 2>/dev/null
+
+STEP 2: Install dependencies (if node_modules missing):
+  cd Engine && npm install
+  cd SceneEditor && npm install
+
+STEP 3: Start all 3 servers:
+
+  Terminal 1 - Engine (game runtime):
+    cd Engine && npm run dev
+    → http://localhost:5174
+
+  Terminal 2 - SceneEditor Backend (file I/O, WebSocket):
+    cd SceneEditor && npm run server
+    → http://localhost:5176
+
+  Terminal 3 - SceneEditor UI (React app):
+    cd SceneEditor && npm run dev
+    → http://localhost:5175
+
+IMPORTANT: The Debug Panel in the SceneEditor UI embeds the Engine via iframe.
+All three must be running to test games visually from the UI.
+
+To run ONLY the game (no UI editing):
+  lsof -ti :5174 | xargs kill -9 2>/dev/null
+  cd Engine && npm run dev
+  → http://localhost:5174
 
 ================================================================================
 📋 FILE ANNOTATION STANDARD
@@ -30,7 +65,12 @@ AI agents should PRESERVE these headers when editing files.
 🎯 PRIME DIRECTIVE
 ================================================================================
 
-**Goal: Achieve Top 20 ranking in iOS App Store and Google Play Store.**
+**Goal: Create high-quality JavaScript/Canvas games wrapped with Capacitor for
+iOS App Store and Google Play Store distribution.**
+
+This engine is designed for PRODUCTION MOBILE GAMES, not web demos. All games
+should be built as native-quality experiences that happen to use web technology.
+Capacitor wraps the Canvas game into a native app shell.
 
 All development decisions must support this goal. When vibecoding games or
 modifying the engine, optimize for:
@@ -269,6 +309,61 @@ InputHandler auto-resumes the AudioContext in touchstart via AudioManager.initAu
 
 IMPORTANT: mouse.pressed and mouse.released are only true for ONE FRAME.
 Check them in update() before they reset.
+
+================================================================================
+DUAL INPUT CONTROLS (CRITICAL FOR TESTING)
+================================================================================
+
+Games are played on mobile via TOUCH but tested in browser via MOUSE/KEYBOARD.
+ALWAYS implement BOTH input methods so games work in both environments.
+
+**Pattern for Player Movement:**
+```javascript
+update(deltaTime) {
+  // TOUCH/MOUSE: Direct position control (works on both)
+  if (this.inputHandler.mouse.down) {
+    this.player.x = this.inputHandler.mouse.x;
+  }
+
+  // KEYBOARD: Arrow keys / WASD for browser testing
+  if (this.inputHandler.isKeyDown('ArrowLeft') || this.inputHandler.isKeyDown('KeyA')) {
+    this.player.x -= this.player.speed * deltaTime;
+  }
+  if (this.inputHandler.isKeyDown('ArrowRight') || this.inputHandler.isKeyDown('KeyD')) {
+    this.player.x += this.player.speed * deltaTime;
+  }
+}
+```
+
+**Pattern for Actions (Jump, Shoot, etc.):**
+```javascript
+update(deltaTime) {
+  // TOUCH/MOUSE: Tap anywhere or tap button
+  if (this.inputHandler.mouse.pressed) {
+    this.jump();
+  }
+
+  // KEYBOARD: Space bar for browser testing
+  if (this.inputHandler.isKeyDown('Space')) {
+    this.jump();
+  }
+}
+```
+
+**Standard Key Mappings for Browser Testing:**
+| Action        | Touch             | Keyboard                    |
+|---------------|-------------------|-----------------------------|
+| Move Left     | Drag/Touch left   | ArrowLeft, KeyA             |
+| Move Right    | Drag/Touch right  | ArrowRight, KeyD            |
+| Move Up       | Drag/Touch up     | ArrowUp, KeyW               |
+| Move Down     | Drag/Touch down   | ArrowDown, KeyS             |
+| Primary Action| Tap               | Space, Enter                |
+| Secondary     | Long press/Swipe  | Shift, KeyE                 |
+| Pause         | Pause button      | Escape, KeyP                |
+
+**IMPORTANT**: The InputHandler normalizes touch and mouse into the same interface.
+`mouse.x/y` works for both. `isKeyDown()` only works in browser but that's fine
+for testing. On mobile, only touch input is available.
 
 --------------------------------------------------------------------------------
 
@@ -750,8 +845,8 @@ Levels group scenes together for organization and progression:
 levels: [
   {
     "id": "level_0",        // Unique identifier
-    "name": "Title",        // Display name
-    "number": 0,            // Level number (0 = title)
+    "name": "Title",        // Display name (shown as "Title (Level 0)" in UI)
+    "number": 0,            // Level number (0 = title level)
     "description": "...",   // Optional description
     "sceneNames": [         // Scenes in this level
       "Title_Scene_1"
@@ -759,7 +854,7 @@ levels: [
   },
   {
     "id": "level_1",
-    "name": "Easy",
+    "name": "Game",         // Display name (shown as "Game (Level 1)" in UI)
     "number": 1,
     "description": "First gameplay level",
     "sceneNames": [
@@ -768,6 +863,13 @@ levels: [
     ]
   }
 ]
+
+## Level Display Convention (MUST FOLLOW)
+
+In the UI, levels are displayed with their level number in parentheses for clarity:
+- All levels: "{name} (Level {N})" - e.g., "Title (Level 0)", "Game (Level 1)", "Boss (Level 2)"
+
+This helps users understand the level's position in the game structure.
 
 ## Engine Messages for Levels
 
@@ -819,8 +921,59 @@ game-manifest.json (in Engine/public/scenes/):
   "name": "My Game",
   "version": "1.0.0",
   "startScene": "TitleScene",
-  "scenes": ["TitleScene", "GameScene", "GameOverScene"]
+  "scenes": ["TitleScene", "GameScene", "GameOverScene"],
+  "useCustomScenes": false
 }
+
+## TWO DEVELOPMENT WORKFLOWS
+
+The engine supports two types of games:
+
+### 1. JSON-Driven Games (useCustomScenes: false)
+- Scenes are defined by JSON files in Engine/public/scenes/
+- Engine uses ConfigurableScene to parse and render them
+- Ideal for simple games built entirely in the SceneEditor UI
+- Export from SceneEditor UI creates the JSON files
+
+### 2. Custom JavaScript Scenes (useCustomScenes: true)
+- Scenes are JavaScript classes extending Scene (e.g., PongScene.js)
+- Registered in main.js via loadCustomScenes()
+- Full control over game logic, physics, AI
+- Ideal for complex gameplay (Pong, Breakout, action games)
+
+**CRITICAL**: The `useCustomScenes` flag tells the Engine which loader to use.
+If you vibecode a game with custom JS scenes, you MUST:
+
+1. Set `useCustomScenes: true` in the SceneEditor project file (projects/*.json)
+2. The server.js export-game endpoint will preserve this flag in game-manifest.json
+3. Custom scene classes must be imported and mapped in main.js customSceneMap
+4. The Debug Panel also respects this flag for in-UI testing
+
+**Without this flag, the game will freeze** because the Engine tries to load
+JSON configs instead of using your custom JS scene classes.
+
+**Example main.js setup for custom scenes:**
+```javascript
+import { PongScene } from './scenes/PongScene.js';
+import { PongTitleScene } from './scenes/PongTitleScene.js';
+
+async function loadCustomScenes(engine, manifest) {
+  const customSceneMap = {
+    'Title_Scene_1': PongTitleScene,
+    'L1_Scene_1': PongScene
+  };
+  for (const sceneName of manifest.scenes) {
+    const SceneClass = customSceneMap[sceneName];
+    if (SceneClass) {
+      const scene = new SceneClass();
+      engine.sceneManager.register(sceneName, scene);
+    }
+  }
+  if (manifest.startScene) {
+    await engine.sceneManager.switchTo(manifest.startScene);
+  }
+}
+```
 
 > [!IMPORTANT]
 > **Path Strictness**: All scenes and manifests MUST be in `Engine/public/scenes/` to be served by Vite. Root `Engine/scenes/` is NOT served.
@@ -869,6 +1022,96 @@ npx cap add android
 2. Run: npm run build:android
 3. Open Android Studio: npm run open:android
 4. Click ▶ Run in Android Studio → app runs on phone
+
+================================================================================
+VIBECODER OUTPUT FORMAT (REQUIRED FOR UI EDITING)
+================================================================================
+
+When vibecoding ANY game actor, ALWAYS generate BOTH files together:
+
+1. ActorName.js         - The JavaScript implementation
+2. ActorName.variables.json - UI-editable properties with min/max/step
+
+WITHOUT the .variables.json file, GameDev UI cannot edit the actor!
+
+## Enhanced Variable Schema
+
+```json
+{
+  "actorId": "Ball",
+  "category": "Gameplay",
+  "variables": {
+    "speed": {
+      "type": "number",
+      "default": 500,
+      "min": 100,
+      "max": 1500,
+      "step": 50,
+      "label": "Ball Speed",
+      "group": "Movement"
+    },
+    "size": {
+      "type": "number", 
+      "default": 30,
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "label": "Ball Size",
+      "group": "Appearance"
+    },
+    "color": {
+      "type": "color",
+      "default": "#ffffff",
+      "label": "Ball Color",
+      "group": "Appearance"
+    },
+    "bounceEnabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Enable Bouncing",
+      "group": "Physics"
+    }
+  }
+}
+```
+
+## Variable Types
+
+| Type    | UI Control    | Required Properties         |
+|---------|---------------|----------------------------|
+| number  | Slider        | min, max, step             |
+| boolean | Toggle        | -                          |
+| string  | Text input    | maxLength (optional)       |
+| color   | Color picker  | -                          |
+| select  | Dropdown      | options: ["a", "b", "c"]   |
+
+## Reading Variables in Actor JS
+
+```javascript
+// In Ball.js init():
+async loadConfig() {
+  try {
+    const res = await fetch('/data/actors/Ball.variables.json');
+    const config = await res.json();
+    // Apply defaults
+    Object.entries(config.variables).forEach(([key, def]) => {
+      this[key] = def.default;
+    });
+  } catch (e) {
+    // Fallback to hardcoded defaults
+    this.speed = 500;
+    this.size = 30;
+  }
+}
+```
+
+## Checklist When Vibecoding an Actor
+
+- [ ] Create ActorName.js with loadConfig() method
+- [ ] Create ActorName.variables.json with all tunable properties
+- [ ] Include min/max/step for ALL number variables
+- [ ] Group related variables (Movement, Appearance, Physics, etc.)
+- [ ] Use descriptive labels for UI display
 
 ================================================================================
 DATA-FIRST DEVELOPMENT (FOR AI VIBECODING)
@@ -939,9 +1182,33 @@ Create these files FIRST:
     "assetId": null
   },
   "variables": {
-    "positionX": { "type": "number", "default": 540, "description": "Starting X" },
-    "positionY": { "type": "number", "default": 960, "description": "Starting Y" },
-    "customVar": { "type": "number", "default": 0, "description": "Description" }
+    "positionX": { 
+      "type": "number", 
+      "default": 540, 
+      "min": 0, 
+      "max": 1080, 
+      "step": 10,
+      "label": "Start X",
+      "group": "Position"
+    },
+    "positionY": { 
+      "type": "number", 
+      "default": 960, 
+      "min": 0, 
+      "max": 1920, 
+      "step": 10,
+      "label": "Start Y",
+      "group": "Position"
+    },
+    "speed": { 
+      "type": "number", 
+      "default": 500, 
+      "min": 100, 
+      "max": 1500, 
+      "step": 50,
+      "label": "Movement Speed",
+      "group": "Movement"
+    }
   },
   "tags": ["tag1", "tag2"],
   "collidesWith": ["OtherActor"],
@@ -1204,7 +1471,7 @@ Project Documentation Files (in project root):
 
 Trigger: [Handover Protocol]
 
-Activation Words: "bye", "done", "handover", "back soon", "finished"
+Activation Words: "bye", "done", "handover", "handoff", "back soon", "finished", "save"
 
 Action: Immediately update PROGRESS.md with today's changes and TODO.md with the next task. Summarize the status in 2 sentences. Do not ask for permission; just do it.
 

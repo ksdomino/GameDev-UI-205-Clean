@@ -2,7 +2,7 @@
   "name": "Pong",
   "version": "1.0.0",
   "createdAt": "2026-01-17T00:00:00Z",
-  "updatedAt": "2026-01-17T00:00:00Z",
+  "updatedAt": "2026-01-18T13:45:00.624Z",
   "canvas": {
     "width": 1080,
     "height": 1920,
@@ -15,120 +15,23 @@
       "name": "Title",
       "number": 0,
       "description": "Title screen and menu",
-      "sceneNames": ["Title_Scene_1"]
-    },
-    {
-      "id": "level_1",
-      "name": "Game",
-      "number": 1,
-      "description": "Main Pong gameplay",
-      "sceneNames": ["L1_Scene_1"]
+      "sceneNames": [
+        "Title_Scene_2",
+        "Title_Scene_3",
+        "Title_Scene_4",
+        "Title_Scene_1"
+      ]
     }
   ],
   "scenes": [
     {
-      "name": "Title_Scene_1",
-      "isStartScene": true,
-      "description": "Title screen with Play button",
-      "assets": { "images": [], "audio": [] },
-      "states": [
-        {
-          "name": "MAIN",
-          "duration": 0,
-          "clearLayers": false,
-          "layers": {
-            "BG_FAR": [
-              {
-                "type": "shape",
-                "id": "background",
-                "shape": "rect",
-                "x": 540,
-                "y": 960,
-                "width": 1080,
-                "height": 1920,
-                "color": "#0f172a",
-                "fill": true,
-                "alpha": 1
-              }
-            ],
-            "BG_NEAR": [],
-            "VIDEO_IMAGE": [],
-            "SHAPES": [
-              {
-                "type": "shape",
-                "id": "decorativeLine",
-                "shape": "rect",
-                "x": 540,
-                "y": 960,
-                "width": 1080,
-                "height": 4,
-                "color": "#ffffff",
-                "fill": true,
-                "alpha": 0.2
-              }
-            ],
-            "SPRITES": [],
-            "TEXT": [
-              {
-                "type": "text",
-                "id": "titleText",
-                "content": "PONG",
-                "x": 540,
-                "y": 600,
-                "fontSize": 144,
-                "fontFamily": "Arial",
-                "fontWeight": "bold",
-                "color": "#ffffff",
-                "textAlign": "center",
-                "alpha": 1
-              },
-              {
-                "type": "text",
-                "id": "subtitleText",
-                "content": "Tap to move your paddle",
-                "x": 540,
-                "y": 750,
-                "fontSize": 36,
-                "fontFamily": "Arial",
-                "fontWeight": "normal",
-                "color": "#94a3b8",
-                "textAlign": "center",
-                "alpha": 1
-              }
-            ],
-            "UI_BUTTONS": [
-              {
-                "type": "button",
-                "id": "playButton",
-                "text": "PLAY",
-                "x": 540,
-                "y": 1200,
-                "width": 400,
-                "height": 120,
-                "color": "#4ade80",
-                "alpha": 1,
-                "onClick": {
-                  "action": "switchScene",
-                  "target": "L1_Scene_1"
-                }
-              }
-            ]
-          },
-          "transition": {
-            "type": "button",
-            "nextScene": "L1_Scene_1"
-          }
-        }
-      ],
-      "transitions": [],
-      "behaviorTree": { "nodes": [] },
-      "animationCurve": { "points": [[0, 0], [1, 1]] }
-    },
-    {
       "name": "L1_Scene_1",
       "isStartScene": false,
       "description": "Main Pong gameplay",
-      "assets": { "images": [], "audio": [] },
+      "assets": {
+        "images": [],
+        "audio": []
+      },
       "states": [
         {
           "name": "PLAYING",
@@ -380,18 +283,276 @@
         }
       ],
       "transitions": [],
-      "behaviorTree": { "nodes": [] },
-      "animationCurve": { "points": [[0, 0], [1, 1]] }
+      "behaviorTree": {
+        "nodes": []
+      },
+      "animationCurve": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "name": "Title_Scene_2",
+      "isStartScene": false,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [],
+            "SPRITES": [],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "name": "Title_Scene_3",
+      "isStartScene": false,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [],
+            "SPRITES": [],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "name": "Title_Scene_4",
+      "isStartScene": false,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [],
+            "SPRITES": [],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "name": "L1_Scene_2",
+      "isStartScene": false,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [],
+            "SPRITES": [],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "name": "Title_Scene_1",
+      "isStartScene": true,
+      "description": "Title screen with Play button",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": 0,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [
+              {
+                "type": "shape",
+                "id": "background",
+                "shape": "rect",
+                "x": 540,
+                "y": 960,
+                "width": 1080,
+                "height": 1920,
+                "color": "#0f172a",
+                "fill": true,
+                "alpha": 1
+              }
+            ],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [
+              {
+                "type": "shape",
+                "id": "decorativeLine",
+                "shape": "rect",
+                "x": 540,
+                "y": 960,
+                "width": 1080,
+                "height": 4,
+                "color": "#ffffff",
+                "fill": true,
+                "alpha": 0.2
+              }
+            ],
+            "SPRITES": [],
+            "TEXT": [
+              {
+                "type": "text",
+                "id": "titleText",
+                "content": "PONG",
+                "x": 328,
+                "y": 428,
+                "fontSize": 144,
+                "fontFamily": "Arial",
+                "fontWeight": "bold",
+                "color": "#ffffff",
+                "textAlign": "center",
+                "alpha": 1
+              },
+              {
+                "type": "text",
+                "id": "subtitleText",
+                "content": "Tap to move your paddle",
+                "x": 336,
+                "y": 670,
+                "fontSize": 36,
+                "fontFamily": "Arial",
+                "fontWeight": "normal",
+                "color": "#94a3b8",
+                "textAlign": "center",
+                "alpha": 1
+              }
+            ],
+            "UI_BUTTONS": [
+              {
+                "type": "button",
+                "id": "playButton",
+                "text": "PLAY",
+                "x": 540,
+                "y": 1200,
+                "width": 400,
+                "height": 120,
+                "color": "#4ade80",
+                "alpha": 1,
+                "onClick": {
+                  "action": "switchScene",
+                  "target": "L1_Scene_1"
+                }
+              }
+            ]
+          },
+          "transition": {
+            "type": "button",
+            "nextScene": "L1_Scene_1"
+          }
+        }
+      ],
+      "transitions": [],
+      "behaviorTree": {
+        "nodes": []
+      },
+      "animationCurve": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      }
     }
   ],
   "assets": {
     "images": [],
     "audio": [
-      { "id": "paddle_hit", "path": "/assets/sfx/paddle_hit.mp3" },
-      { "id": "wall_hit", "path": "/assets/sfx/wall_hit.mp3" },
-      { "id": "score", "path": "/assets/sfx/score.mp3" },
-      { "id": "win", "path": "/assets/sfx/win.mp3" },
-      { "id": "lose", "path": "/assets/sfx/lose.mp3" }
+      {
+        "id": "paddle_hit",
+        "path": "/assets/sfx/paddle_hit.mp3"
+      },
+      {
+        "id": "wall_hit",
+        "path": "/assets/sfx/wall_hit.mp3"
+      },
+      {
+        "id": "score",
+        "path": "/assets/sfx/score.mp3"
+      },
+      {
+        "id": "win",
+        "path": "/assets/sfx/win.mp3"
+      },
+      {
+        "id": "lose",
+        "path": "/assets/sfx/lose.mp3"
+      }
     ],
     "fonts": []
   },
@@ -448,12 +609,42 @@
   ],
   "flowMap": {
     "positions": {
-      "Title_Scene_1": { "x": 100, "y": 100 },
-      "L1_Scene_1": { "x": 350, "y": 100 }
-    }
+      "Title_Scene_1": {
+        "x": 150,
+        "y": 150
+      },
+      "Title_Scene_2": {
+        "x": 450,
+        "y": 150
+      },
+      "Title_Scene_3": {
+        "x": 750,
+        "y": 150
+      },
+      "Title_Scene_4": {
+        "x": 150,
+        "y": 350
+      }
+    },
+    "connections": [
+      {
+        "from": "Title_Scene_1",
+        "to": "Title_Scene_2",
+        "trigger": "manual"
+      },
+      {
+        "from": "Title_Scene_2",
+        "to": "Title_Scene_3",
+        "trigger": "manual"
+      }
+    ]
   },
   "build": {
     "target": "mobile",
-    "platforms": ["android", "ios"]
-  }
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "useCustomScenes": true
 }

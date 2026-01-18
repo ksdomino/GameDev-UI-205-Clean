@@ -129,6 +129,8 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
         height: project.canvas.height
       },
       startScene: selectedScene.name,
+      // Pass useCustomScenes flag - if true, Engine uses JS scene classes instead of JSON
+      useCustomScenes: project.useCustomScenes || false,
       scenes: project.scenes.map(scene => ({
         sceneName: scene.name,
         assets: {
@@ -207,7 +209,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={onBack} style={styles.backButton}>🏠 Home</button>
+            <button onClick={onBack} style={styles.backButton}>← Back to Home 🏠</button>
             <div style={styles.headerIcon}>🐛</div>
             <div>
               <h1 style={{ fontSize: '16px', fontWeight: '600', margin: 0 }}>Debug Panel</h1>

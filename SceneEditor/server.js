@@ -497,6 +497,99 @@ app.delete('/api/assets/:type/:filename', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ========== ACTORS API (Variable Editor) ==========
+
+const ACTORS_DIR = path.join(__dirname, '..', 'Engine', 'data', 'actors');
+
+/**
+ * GET /api/actors - List all actors with their variables
+ */
+app.get('/api/actors', async (req, res) => {
+  try {
+    // Ensure directory exists
+    await fs.mkdir(ACTORS_DIR, { recursive: true });
+
+    const files = await fs.readdir(ACTORS_DIR);
+    const actors = [];
+
+    for (const file of files) {
+      if (file.endsWith('.variables.json') || file.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(path.join(ACTORS_DIR, file), 'utf-8');
+          const actor = JSON.parse(content);
+          actors.push({
+            filename: file,
+            actorId: actor.actorId || file.replace('.variables.json', '').replace('.json', ''),
+            category: actor.category || 'General',
+            variableCount: Object.keys(actor.variables || {}).length
+          });
+        } catch (e) {
+          console.warn(`Could not parse ${file}:`, e.message);
+        }
+      }
+    }
+
+    res.json({ success: true, actors });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/actors/:id - Load specific actor variables
+ */
+app.get('/api/actors/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Try .variables.json first, then .json
+    let filePath = path.join(ACTORS_DIR, `${id}.variables.json`);
+    try {
+      await fs.access(filePath);
+    } catch (e) {
+      filePath = path.join(ACTORS_DIR, `${id}.json`);
+    }
+
+    const content = await fs.readFile(filePath, 'utf-8');
+    const actor = JSON.parse(content);
+
+    res.json({ success: true, actor });
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      res.status(404).json({ success: false, error: 'Actor not found' });
+    } else {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+});
+
+/**
+ * POST /api/actors/:id - Save actor variables
+ */
+app.post('/api/actors/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { actor } = req.body;
+
+    if (!actor) {
+      return res.status(400).json({ success: false, error: 'No actor data provided' });
+    }
+
+    await fs.mkdir(ACTORS_DIR, { recursive: true });
+
+    const filename = `${id}.variables.json`;
+    const filePath = path.join(ACTORS_DIR, filename);
+
+    await fs.writeFile(filePath, JSON.stringify(actor, null, 2));
+    console.log(`💾 Saved actor: ${filename}`);
+
+    res.json({ success: true, filename });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ========== HELPERS ==========
 
 /**
@@ -644,6 +737,7 @@ app.post('/api/export-game', async (req, res) => {
       version: project.version || '1.0.0',
       startScene: project.scenes.find(s => s.isStartScene)?.name || project.scenes[0]?.name,
       scenes: exportedScenes,
+      useCustomScenes: project.useCustomScenes || false,
       canvas: project.canvas,
       exportedAt: new Date().toISOString()
     };

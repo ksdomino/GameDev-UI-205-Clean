@@ -225,10 +225,10 @@ export class PongScene extends Scene {
         ctx.fillStyle = '#ffffff';
         ctx.fillText(`${this.aiScore} - ${this.playerScore}`, 540, 960);
 
-        // Tap to continue
+        // Tap to continue (or press Space/Enter in browser)
         ctx.font = '36px Arial';
         ctx.fillStyle = '#94a3b8';
-        ctx.fillText('Tap to play again', 540, 1100);
+        ctx.fillText('Tap or press SPACE to play again', 540, 1100);
 
         ctx.restore();
       }
@@ -273,7 +273,7 @@ export class PongScene extends Scene {
   updatePlayerPaddle(deltaTime) {
     const input = this.inputHandler;
 
-    // Follow touch/mouse X position directly
+    // TOUCH/MOUSE: Follow touch/mouse X position directly
     if (input.mouse.down || input.touches.length > 0) {
       const targetX = input.mouse.x;
 
@@ -286,6 +286,14 @@ export class PongScene extends Scene {
       } else {
         this.playerPaddle.x = targetX;
       }
+    }
+
+    // KEYBOARD: Arrow keys / WASD for browser testing
+    if (input.isKeyDown('ArrowLeft') || input.isKeyDown('KeyA')) {
+      this.playerPaddle.x -= this.playerPaddle.speed * deltaTime;
+    }
+    if (input.isKeyDown('ArrowRight') || input.isKeyDown('KeyD')) {
+      this.playerPaddle.x += this.playerPaddle.speed * deltaTime;
     }
 
     // Clamp to court bounds
@@ -436,8 +444,13 @@ export class PongScene extends Scene {
   }
 
   updateGameOver(deltaTime) {
-    // Wait for tap to restart
+    // TOUCH/MOUSE: Wait for tap to restart
     if (this.inputHandler.mouse.pressed) {
+      this.resetGame();
+    }
+
+    // KEYBOARD: Space or Enter to restart (browser testing)
+    if (this.inputHandler.isKeyDown('Space') || this.inputHandler.isKeyDown('Enter')) {
       this.resetGame();
     }
   }

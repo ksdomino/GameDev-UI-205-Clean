@@ -12,9 +12,9 @@ import WaveEditor from './WaveEditor';
 import UpgradePoolEditor from './UpgradePoolEditor';
 
 const TABS = [
-    { id: 'actors', label: '👾 Actors', description: 'Entity definitions & logic' },
-    { id: 'waves', label: '🌊 Waves', description: 'Enemy spawn patterns' },
-    { id: 'upgrades', label: '⬆️ Upgrades', description: 'Rogue-lite upgrades' }
+    { id: 'actors', label: '👾 Actors' },
+    { id: 'waves', label: '🌊 Waves' },
+    { id: 'upgrades', label: '⬆️ Upgrades' }
 ];
 
 export default function GameDataHub({ project, updateProject, onBack }) {
@@ -22,37 +22,28 @@ export default function GameDataHub({ project, updateProject, onBack }) {
 
     return (
         <div style={styles.container}>
-            {/* Header */}
+            {/* Compact Header with Home + Tabs */}
             <header style={styles.header}>
-                <div style={styles.headerLeft}>
-                    {onBack && (
-                        <button onClick={onBack} style={styles.backButton}>
-                            🏠 Home
-                        </button>
-                    )}
-                    <div style={styles.titleArea}>
-                        <h1 style={styles.title}>📊 Game Data</h1>
-                        <p style={styles.subtitle}>Manage actors, waves, and upgrades</p>
-                    </div>
-                </div>
-            </header>
-
-            {/* Tab Bar */}
-            <nav style={styles.tabBar}>
-                {TABS.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        style={{
-                            ...styles.tab,
-                            ...(activeTab === tab.id ? styles.tabActive : {})
-                        }}
-                    >
-                        <span style={styles.tabLabel}>{tab.label}</span>
-                        <span style={styles.tabDescription}>{tab.description}</span>
+                {onBack && (
+                    <button onClick={onBack} style={styles.backButton}>
+                        ← Back to Home 🏠
                     </button>
-                ))}
-            </nav>
+                )}
+                <nav style={styles.tabBar}>
+                    {TABS.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{
+                                ...styles.tab,
+                                ...(activeTab === tab.id ? styles.tabActive : {})
+                            }}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </nav>
+            </header>
 
             {/* Tab Content */}
             <main style={styles.content}>
@@ -88,17 +79,12 @@ const styles = {
         overflow: 'hidden'
     },
     header: {
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '12px 20px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        gap: '12px',
         flexShrink: 0
-    },
-    headerLeft: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px'
     },
     backButton: {
         padding: '8px 14px',
@@ -109,54 +95,26 @@ const styles = {
         fontSize: '13px',
         cursor: 'pointer'
     },
-    titleArea: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '2px'
-    },
-    title: {
-        margin: 0,
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#f1f5f9'
-    },
-    subtitle: {
-        margin: 0,
-        fontSize: '12px',
-        color: '#64748b'
-    },
     tabBar: {
         display: 'flex',
-        gap: '8px',
-        padding: '0 24px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        flexShrink: 0
+        gap: '6px',
+        flex: 1
     },
     tab: {
-        padding: '12px 20px',
+        padding: '8px 16px',
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: '10px',
+        borderRadius: '8px',
         color: '#94a3b8',
         cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '4px',
+        fontSize: '13px',
+        fontWeight: '500',
         transition: 'all 0.2s'
     },
     tabActive: {
-        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)',
-        border: '1px solid rgba(99, 102, 241, 0.4)',
+        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%)',
+        border: '1px solid rgba(99, 102, 241, 0.5)',
         color: '#f1f5f9'
-    },
-    tabLabel: {
-        fontSize: '14px',
-        fontWeight: '600'
-    },
-    tabDescription: {
-        fontSize: '11px',
-        opacity: 0.7
     },
     content: {
         flex: 1,

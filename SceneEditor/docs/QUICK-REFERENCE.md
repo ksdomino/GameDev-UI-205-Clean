@@ -4,8 +4,7 @@
 
 | Key | Action |
 |-----|--------|
-| `Shift + Drag` | Create connection (Flow Map) |
-| `Double-click` | Edit scene (Flow Map) |
+| `Double-click` | Edit scene (Level Node Editor) |
 | `Escape` | Close modal |
 | `Enter` | Confirm input |
 
@@ -15,8 +14,9 @@
 |------|--------|---------|
 | Project Manager | Start screen | List/create games |
 | Dashboard | After opening project | Project overview |
-| Scene Flow Map | Dashboard → 🗺️ Flow Map | Scene connections |
-| Scene Editor | Dashboard → Click scene | Edit scene content |
+| Level Selector | Dashboard → Levels | Select or add a level |
+| Level Node Editor | Level Selector → Edit Scenes | Scene connections for a level |
+| Scene Editor | Level Node Editor → Double-click | Edit scene content |
 | Debug Panel | Editor → 🐛 Test | Live testing |
 
 ## Entity Types
@@ -108,11 +108,11 @@ POST /api/export-game      - Export to Engine
 3. Set target (nextState/nextScene)
 4. Set duration if timer
 
-### Connect Scenes in Flow Map
-1. Open Flow Map
-2. Hold Shift
-3. Drag from source scene
-4. Drop on target scene
+### Connect Scenes in Level Node Editor
+1. Open Level Selector → Edit Scenes on a level
+2. Drag from output dot (right side of node)
+3. Drop on input dot (left side of target node)
+4. Click wire or red output dot to delete connections
 
 ### Test Your Game
 1. In Scene Editor, click 🐛 Test
@@ -152,13 +152,15 @@ COUNTDOWN       - Timer display
 TRANSITION      - Between states
 ```
 
+## Level Display Convention
+
+All levels are displayed with their level number in parentheses:
+- `{name} (Level {N})` - e.g., "Title (Level 0)", "Game (Level 1)", "Boss (Level 2)"
+
 ## Scene Naming Convention
 
 ```
-TitleScene      - Main menu
-GameScene       - Gameplay
-GameOverScene   - End screen
-SettingsScene   - Options
-TutorialScene   - Instructions
-LevelSelectScene - Choose level
+Title_Scene_1   - First scene in title level
+L1_Scene_1      - First scene in Level 1
+L2_Scene_1      - First scene in Level 2
 ```

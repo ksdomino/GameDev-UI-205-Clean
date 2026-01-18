@@ -62,7 +62,11 @@ export const createDefaultProject = () => ({
   build: {
     target: 'mobile', // mobile, web, both
     platforms: ['android', 'ios']
-  }
+  },
+
+  // Custom scenes flag - set to true when using JavaScript scene classes
+  // instead of JSON-driven ConfigurableScene (e.g., PongScene.js, PongTitleScene.js)
+  useCustomScenes: false
 });
 
 /**

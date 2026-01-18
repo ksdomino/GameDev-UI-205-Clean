@@ -71,7 +71,7 @@ export class PongTitleScene extends Scene {
     };
     this.layerManager.addToLayer(titleText, 'TEXT');
 
-    // Subtitle
+    // Subtitle (with browser controls hint)
     const subtitleText = {
       render: (ctx) => {
         ctx.save();
@@ -79,7 +79,7 @@ export class PongTitleScene extends Scene {
         ctx.font = '36px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('Tap to move your paddle', 540, 750);
+        ctx.fillText('Tap or use Arrow Keys to move', 540, 750);
         ctx.restore();
       }
     };
@@ -116,12 +116,17 @@ export class PongTitleScene extends Scene {
   update(deltaTime) {
     if (!this.isActive) return;
 
-    // Check for button click
+    // TOUCH/MOUSE: Check for button click
     if (this.inputHandler.mouse.pressed) {
       const { x, y } = this.inputHandler.mouse;
       if (this.playButton) {
         this.playButton.checkClick(x, y);
       }
+    }
+
+    // KEYBOARD: Space or Enter to start game (browser testing)
+    if (this.inputHandler.isKeyDown('Space') || this.inputHandler.isKeyDown('Enter')) {
+      this.onPlayPressed();
     }
   }
 

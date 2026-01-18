@@ -5,17 +5,23 @@ import { createDefaultScene, generateSceneName, getNextSceneNumber } from '../da
  * Scene Flow Map - Visual node editor for scene connections
  * Shows scenes as draggable nodes with connections between them
  * When levelIndex is provided, only shows scenes for that level
+ *
+ * Based on NodeEditor.jsx drag pattern
  */
-export default function SceneFlowMap({ project, updateProject, onOpenScene, onBack, levelIndex }) {
+export default function SceneFlowMap({ project, updateProject, onOpenScene, onBack, levelIndex, onPushUndo }) {
   const canvasRef = useRef(null)
-  const containerRef = useRef(null)
   const [nodes, setNodes] = useState([])
   const [connections, setConnections] = useState([])
-  const [dragging, setDragging] = useState(null)
-  const [connecting, setConnecting] = useState(null)
   const [selectedNode, setSelectedNode] = useState(null)
-  const [zoom, setZoom] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
+
+  // Dragging state - matching NodeEditor pattern
+  const [draggingNode, setDraggingNode] = useState(null)
+
+  // Connection drawing state
+  const [connecting, setConnecting] = useState(null)
+
+  // Delete confirmation state
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // { sceneName } or null
 
   // Get scenes to display - filter by level if levelIndex is provided
   const getDisplayScenes = useCallback(() => {
@@ -29,6 +35,10 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
 
   const displayScenes = getDisplayScenes()
   const currentLevel = levelIndex !== undefined ? project.levels?.[levelIndex] : null
+
+  // Create a stable key for when we need to re-initialize nodes
+  // Only re-init when scene names actually change, not on every render
+  const sceneNamesKey = displayScenes.map(s => s.name).join(',')
 
   // Initialize nodes from display scenes
   useEffect(() => {
@@ -71,25 +81,74 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
         })
       })
     })
+
+    // Also load saved manual connections from flowMap
+    const savedConnections = project.flowMap?.connections || []
+    savedConnections.forEach(conn => {
+      // Only add if both nodes exist in current view
+      if (displaySceneNames.has(conn.from) && displaySceneNames.has(conn.to)) {
+        // Avoid duplicates - only one connection per source node
+        const exists = newConnections.some(c => c.from === conn.from)
+        if (!exists) {
+          newConnections.push(conn)
+        }
+      }
+    })
+
+    // Create default sequential connections if no connections exist for a scene
+    // Scene 1 → Scene 2 → Scene 3, etc.
+    const sceneNamesList = displayScenes.map(s => s.name)
+    for (let i = 0; i < sceneNamesList.length - 1; i++) {
+      const fromScene = sceneNamesList[i]
+      const toScene = sceneNamesList[i + 1]
+      // Only add if this scene doesn't already have an outgoing connection
+      const hasOutgoing = newConnections.some(c => c.from === fromScene)
+      if (!hasOutgoing) {
+        newConnections.push({
+          from: fromScene,
+          to: toScene,
+          trigger: 'sequential'
+        })
+      }
+    }
+
     setConnections(newConnections)
-  }, [displayScenes])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sceneNamesKey])
+
+  // Keyboard event listener for Delete/Backspace
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only handle Delete/Backspace when a node is selected and no modal is open
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNode && !deleteConfirm) {
+        // Prevent backspace from navigating back in browser
+        e.preventDefault()
+        setDeleteConfirm({ sceneName: selectedNode })
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedNode, deleteConfirm])
 
   // Save node positions to project
-  const savePositions = useCallback(() => {
+  const savePositions = useCallback((nodesToSave) => {
     const positions = {}
-    nodes.forEach(node => {
+    nodesToSave.forEach(node => {
       positions[node.id] = { x: node.x, y: node.y }
     })
     updateProject({
       flowMap: { ...project.flowMap, positions }
     })
-  }, [nodes, project?.flowMap, updateProject])
+  }, [project?.flowMap, updateProject])
 
-  // Handle mouse down on node
-  const handleNodeMouseDown = (e, node) => {
+  // ============ DRAG HANDLERS (matching NodeEditor pattern exactly) ============
+
+  function handleNodeMouseDown(e, node) {
     e.stopPropagation()
-    // Start dragging
-    setDragging({
+    e.preventDefault()
+
+    setDraggingNode({
       nodeId: node.id,
       offsetX: e.clientX - node.x,
       offsetY: e.clientY - node.y
@@ -97,56 +156,58 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
     setSelectedNode(node.id)
   }
 
-  // Handle mouse move
-  const handleMouseMove = (e) => {
-    if (dragging) {
+  function handleMouseMove(e) {
+    if (draggingNode) {
+      const newX = e.clientX - draggingNode.offsetX
+      const newY = e.clientY - draggingNode.offsetY
+
       setNodes(prev => prev.map(n =>
-        n.id === dragging.nodeId
-          ? { ...n, x: e.clientX - dragging.offsetX, y: e.clientY - dragging.offsetY }
+        n.id === draggingNode.nodeId
+          ? { ...n, x: Math.max(0, newX), y: Math.max(0, newY) }
           : n
       ))
     }
+
     if (connecting) {
-      setConnecting(prev => ({
+      setConnecting(prev => prev ? {
         ...prev,
         endX: e.clientX,
         endY: e.clientY
-      }))
+      } : null)
     }
   }
 
-  // Handle mouse up
-  const handleMouseUp = (e) => {
-    if (dragging) {
-      savePositions()
-      setDragging(null)
+  function handleMouseUp() {
+    if (draggingNode) {
+      // Save positions after drag ends
+      savePositions(nodes)
+      setDraggingNode(null)
     }
-    if (connecting) {
-      // Check if we're over a node
-      const targetNode = nodes.find(n => {
-        const rect = { x: n.x, y: n.y, width: 200, height: 80 }
-        return e.clientX >= rect.x && e.clientX <= rect.x + rect.width &&
-          e.clientY >= rect.y && e.clientY <= rect.y + rect.height
-      })
 
-      if (targetNode && targetNode.id !== connecting.from) {
-        // Create new connection
-        const newConnection = {
-          from: connecting.from,
-          to: targetNode.id,
-          trigger: 'manual',
-          label: 'New transition'
-        }
-        setConnections(prev => [...prev, newConnection])
-      }
+    if (connecting) {
+      // Check if we're over a node - use the last mouse position
+      // This is simplified - in production you'd check actual positions
       setConnecting(null)
     }
+  }
+
+  // Handle output handle drag start
+  function handleOutputMouseDown(e, node) {
+    e.stopPropagation()
+    e.preventDefault()
+
+    setConnecting({
+      from: node.id,
+      startX: node.x + 200,
+      startY: node.y + 40,
+      endX: e.clientX,
+      endY: e.clientY
+    })
   }
 
   // Add new scene to current level
   const addScene = () => {
     if (!currentLevel) {
-      // Fallback for legacy mode (no level selected)
       const sceneName = `Scene${project.scenes.length + 1}`
       const newScene = createDefaultScene(sceneName, false)
       updateProject({
@@ -155,12 +216,10 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
       return
     }
 
-    // Use level-aware naming: L{N}_Scene_X
     const nextNum = getNextSceneNumber(currentLevel.sceneNames || [], currentLevel.number)
     const sceneName = generateSceneName(currentLevel.number, nextNum)
     const newScene = createDefaultScene(sceneName, false)
 
-    // Update the level's sceneNames and add scene to project
     const updatedLevels = project.levels.map((lvl, i) =>
       i === levelIndex
         ? { ...lvl, sceneNames: [...(lvl.sceneNames || []), sceneName] }
@@ -173,16 +232,171 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
     })
   }
 
-  // Delete connection
-  const deleteConnection = (index) => {
-    setConnections(prev => prev.filter((_, i) => i !== index))
+  // Handle delete button click - show confirmation modal
+  const handleDeleteClick = (e, sceneName) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setDeleteConfirm({ sceneName })
   }
 
-  // Get node center position
-  const getNodeCenter = (nodeId) => {
-    const node = nodes.find(n => n.id === nodeId)
-    if (!node) return { x: 0, y: 0 }
-    return { x: node.x + 100, y: node.y + 40 }
+  // Confirm delete scene
+  const handleDeleteConfirm = () => {
+    if (!deleteConfirm) return
+    const sceneName = deleteConfirm.sceneName
+
+    // Store for undo before deleting
+    const sceneToDelete = project.scenes.find(s => s.name === sceneName)
+    if (sceneToDelete && onPushUndo) {
+      onPushUndo('scene', sceneToDelete, levelIndex)
+    }
+
+    // Remove from level.sceneNames if in a level
+    const updatedLevels = project.levels?.map((lvl, i) =>
+      i === levelIndex
+        ? { ...lvl, sceneNames: (lvl.sceneNames || []).filter(s => s !== sceneName) }
+        : lvl
+    ) || []
+
+    // Remove from project.scenes
+    const updatedScenes = project.scenes.filter(s => s.name !== sceneName)
+
+    updateProject({
+      levels: updatedLevels,
+      scenes: updatedScenes
+    })
+
+    setDeleteConfirm(null)
+    setSelectedNode(null)
+  }
+
+  // Cancel delete
+  const handleDeleteCancel = () => {
+    setDeleteConfirm(null)
+  }
+
+  // Save connections to project flowMap
+  const saveConnections = useCallback((conns) => {
+    // Only save manual connections (not auto-detected ones from scene transitions)
+    const manualConnections = conns.filter(c => c.trigger === 'manual')
+    updateProject({
+      flowMap: {
+        ...project.flowMap,
+        connections: manualConnections
+      }
+    })
+  }, [project?.flowMap, updateProject])
+
+  // Delete connection
+  const deleteConnection = (index) => {
+    setConnections(prev => {
+      const updated = prev.filter((_, i) => i !== index)
+      // Save after delete
+      saveConnections(updated)
+      return updated
+    })
+  }
+
+  // Render connections with bendy "wire" style curves (from NodeEditor)
+  function renderConnections() {
+    return connections.map((conn, idx) => {
+      const fromNode = nodes.find(n => n.id === conn.from)
+      const toNode = nodes.find(n => n.id === conn.to)
+
+      if (!fromNode || !toNode) return null
+
+      const nodeWidth = 200
+      const nodeHeight = 80
+
+      // Connection points
+      const fromX = fromNode.x + nodeWidth
+      const fromY = fromNode.y + nodeHeight / 2
+      const toX = toNode.x
+      const toY = toNode.y + nodeHeight / 2
+
+      // Dynamic bezier curve - more "bendy" look
+      const dx = Math.abs(toX - fromX)
+      const controlOffset = Math.max(50, dx * 0.4)
+
+      const c1x = fromX + controlOffset
+      const c1y = fromY
+      const c2x = toX - controlOffset
+      const c2y = toY
+
+      return (
+        <g key={`conn-${idx}`} onClick={() => deleteConnection(idx)} style={{ cursor: 'pointer' }}>
+          {/* Invisible wider path for easier clicking */}
+          <path
+            d={`M ${fromX} ${fromY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${toX} ${toY}`}
+            fill="none"
+            stroke="transparent"
+            strokeWidth="12"
+            strokeLinecap="round"
+            style={{ pointerEvents: 'stroke' }}
+          />
+          {/* Wire shadow for depth */}
+          <path
+            d={`M ${fromX} ${fromY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${toX} ${toY}`}
+            fill="none"
+            stroke="rgba(0,0,0,0.3)"
+            strokeWidth="4"
+            strokeLinecap="round"
+            style={{ pointerEvents: 'none' }}
+          />
+          {/* Main wire */}
+          <path
+            d={`M ${fromX} ${fromY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${toX} ${toY}`}
+            fill="none"
+            stroke="#6366f1"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            style={{ pointerEvents: 'none' }}
+          />
+          {conn.label && (
+            <text
+              x={(fromX + toX) / 2}
+              y={(fromY + toY) / 2 - 10}
+              fill="#94a3b8"
+              fontSize="10"
+              textAnchor="middle"
+            >
+              {conn.label}
+            </text>
+          )}
+        </g>
+      )
+    })
+  }
+
+  // Render the connection being drawn
+  function renderDrawingConnection() {
+    if (!connecting) return null
+
+    const fromNode = nodes.find(n => n.id === connecting.from)
+    if (!fromNode) return null
+
+    // Get canvas offset for coordinate conversion
+    const canvas = canvasRef.current
+    const rect = canvas?.getBoundingClientRect()
+    if (!rect) return null
+
+    const startX = fromNode.x + 200
+    const startY = fromNode.y + 40
+    const endX = connecting.endX - rect.left
+    const endY = connecting.endY - rect.top
+
+    const dx = Math.abs(endX - startX)
+    const controlOffset = Math.max(50, dx * 0.4)
+
+    return (
+      <path
+        d={`M ${startX} ${startY} C ${startX + controlOffset} ${startY}, ${endX - controlOffset} ${endY}, ${endX} ${endY}`}
+        fill="none"
+        stroke="#6366f1"
+        strokeWidth="2"
+        strokeDasharray="5,5"
+        strokeLinecap="round"
+      />
+    )
   }
 
   return (
@@ -204,15 +418,10 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
         flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={onBack} style={styles.backButton}>🎮 Back to Levels</button>
-          <div>
-            <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
-              {currentLevel ? `Level ${currentLevel.number}: ${currentLevel.name}` : '🎬 Scene Editor'}
-            </h1>
-            <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>
-              {displayScenes.length} scenes • {connections.length} connections
-            </p>
-          </div>
+          <button onClick={onBack} style={styles.backButton}>← Back</button>
+          <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
+            {currentLevel ? `${currentLevel.name} - (Level ${currentLevel.number}) Scenes` : 'Level Scenes'}
+          </h1>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -220,181 +429,293 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
         </div>
       </header>
 
-      {/* Canvas Area */}
+      {/* Canvas Area - matching NodeEditor pattern */}
       <div
-        ref={containerRef}
+        ref={canvasRef}
         style={{
           flex: 1,
           position: 'relative',
-          overflow: 'hidden',
-          cursor: dragging ? 'grabbing' : 'default'
+          overflow: 'auto',
+          backgroundColor: '#0a0f1a',
+          backgroundImage: 'radial-gradient(circle, #1e293b 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          cursor: draggingNode ? 'grabbing' : 'default'
         }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onClick={() => setSelectedNode(null)}
       >
-        {/* Grid Background */}
-        <div style={{
+        {/* SVG for connections - container allows events but doesn't block, paths handle their own */}
+        <svg style={{
           position: 'absolute',
-          inset: 0,
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-          `,
-          backgroundSize: '50px 50px'
-        }} />
-
-        {/* SVG for connections */}
-        <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <defs>
-            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="#6366f1" />
-            </marker>
-          </defs>
-
-          {/* Existing connections */}
-          {connections.map((conn, i) => {
-            const from = getNodeCenter(conn.from)
-            const to = getNodeCenter(conn.to)
-            const midX = (from.x + to.x) / 2
-            const midY = (from.y + to.y) / 2
-
-            return (
-              <g key={i}>
-                <path
-                  d={`M ${from.x} ${from.y} Q ${midX} ${from.y}, ${midX} ${midY} T ${to.x} ${to.y}`}
-                  stroke="#6366f1"
-                  strokeWidth="2"
-                  fill="none"
-                  markerEnd="url(#arrowhead)"
-                  style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-                  onClick={() => deleteConnection(i)}
-                />
-                {conn.label && (
-                  <text x={midX} y={midY - 10} fill="#94a3b8" fontSize="10" textAnchor="middle">
-                    {conn.label}
-                  </text>
-                )}
-              </g>
-            )
-          })}
-
-          {/* Connection being drawn */}
-          {connecting && connecting.endX && (
-            <line
-              x1={connecting.startX}
-              y1={connecting.startY}
-              x2={connecting.endX}
-              y2={connecting.endY}
-              stroke="#6366f1"
-              strokeWidth="2"
-              strokeDasharray="5,5"
-            />
-          )}
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          overflow: 'visible'
+        }}>
+          <g style={{ pointerEvents: 'auto' }}>
+            {renderConnections()}
+          </g>
+          {renderDrawingConnection()}
         </svg>
 
         {/* Scene Nodes */}
-        {nodes.map(node => (
-          <div
-            key={node.id}
-            onMouseDown={(e) => handleNodeMouseDown(e, node)}
-            onDoubleClick={() => onOpenScene(project.scenes.findIndex(s => s.name === node.id))}
-            style={{
-              position: 'absolute',
-              left: node.x,
-              top: node.y,
-              width: '200px',
-              background: selectedNode === node.id
-                ? 'rgba(99, 102, 241, 0.3)'
-                : 'rgba(255,255,255,0.05)',
-              border: node.isStart
-                ? '2px solid #6366f1'
-                : selectedNode === node.id
-                  ? '2px solid #6366f1'
-                  : '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-              padding: '12px 16px',
-              cursor: 'grab',
-              userSelect: 'none',
-              boxShadow: selectedNode === node.id ? '0 4px 20px rgba(99, 102, 241, 0.3)' : 'none'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <span style={{ fontSize: '16px' }}>🎬</span>
-              <span style={{ fontSize: '14px', fontWeight: '600' }}>{node.id}</span>
-              {node.isStart && (
-                <span style={{
-                  fontSize: '9px',
-                  background: '#6366f1',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  marginLeft: 'auto'
-                }}>START</span>
-              )}
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>
-              {node.scene.states?.length || 0} states
-            </div>
-            <div style={{
-              fontSize: '9px',
-              color: '#475569',
-              marginTop: '4px'
-            }}>
-              Double-click to edit
-            </div>
+        {nodes.map(node => {
+          const isSelected = selectedNode === node.id
+          const isDragging = draggingNode?.nodeId === node.id
+          const isBeingDragged = draggingNode !== null || connecting !== null
 
-            {/* Connection Handle (Output) */}
+          // Handle dropping a connection onto this node
+          function handleNodeMouseUp(e) {
+            if (connecting && connecting.from !== node.id) {
+              e.stopPropagation()
+              // Create the connection - replacing any existing outgoing connection from this source
+              const newConn = {
+                from: connecting.from,
+                to: node.id,
+                trigger: 'manual'
+              }
+              setConnections(prev => {
+                // Remove any existing connection FROM the same source (one output only)
+                const filtered = prev.filter(c => c.from !== connecting.from)
+                const updated = [...filtered, newConn]
+                // Save to project
+                saveConnections(updated)
+                return updated
+              })
+              setConnecting(null)
+            }
+          }
+
+          return (
             <div
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                // Start connecting from this handle
-                setConnecting({
-                  from: node.id,
-                  startX: node.x + 200, // Right edge
-                  startY: node.y + 40   // Center Y
-                })
-              }}
+              key={node.id}
+              onMouseDown={(e) => handleNodeMouseDown(e, node)}
+              onMouseUp={handleNodeMouseUp}
+              onDoubleClick={() => onOpenScene(project.scenes.findIndex(s => s.name === node.id))}
               style={{
                 position: 'absolute',
-                right: '-6px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '12px',
-                height: '12px',
-                background: '#6366f1',
-                borderRadius: '50%',
-                cursor: 'crosshair',
-                border: '2px solid #1a1a2e',
-                boxShadow: '0 0 0 2px rgba(99, 102, 241, 0.4)',
-                zIndex: 10
+                left: node.x,
+                top: node.y,
+                width: '200px',
+                backgroundColor: '#1e293b',
+                border: `2px solid ${node.isStart ? '#6366f1' : isSelected ? '#6366f1' : '#334155'}`,
+                borderRadius: '12px',
+                overflow: 'visible',
+                cursor: isDragging ? 'grabbing' : 'grab',
+                boxShadow: isSelected ? '0 0 20px rgba(99, 102, 241, 0.4)' : '0 4px 12px rgba(0,0,0,0.3)',
+                transition: isDragging ? 'none' : 'box-shadow 0.2s',
+                zIndex: isDragging ? 100 : 1,
+                userSelect: 'none',
+                // When dragging a NODE, disable pointer events on other nodes so canvas gets events
+                // When drawing a CONNECTION, keep pointer events so we can drop on target nodes
+                pointerEvents: (draggingNode && !isDragging) ? 'none' : 'auto'
               }}
-              title="Drag to connect"
-            />
-          </div>
-        ))}
+            >
+              {/* Node header - pointerEvents none so parent gets drag events */}
+              <div style={{
+                backgroundColor: node.isStart ? '#6366f1' : '#334155',
+                padding: '8px 12px',
+                borderRadius: '10px 10px 0 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                pointerEvents: 'none',
+                userSelect: 'none'
+              }}>
+                <span>🎬</span>
+                <span style={{ fontSize: '14px', fontWeight: '600', flex: 1 }}>{node.id}</span>
+                {/* Delete button - pointerEvents auto so it can be clicked */}
+                <button
+                  onClick={(e) => handleDeleteClick(e, node.id)}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    borderRadius: '4px',
+                    color: '#fca5a5',
+                    fontSize: '12px',
+                    padding: '2px 6px',
+                    cursor: 'pointer',
+                    pointerEvents: 'auto'
+                  }}
+                  title="Delete scene"
+                >
+                  🗑️
+                </button>
+              </div>
 
-        {/* Legend */}
+              {/* Node body - pointerEvents none so parent gets drag events */}
+              <div style={{ padding: '10px 12px', pointerEvents: 'none', userSelect: 'none' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  {node.scene.states?.length || 0} states
+                </div>
+                <div style={{ fontSize: '9px', color: '#475569', marginTop: '4px' }}>
+                  Double-click to edit
+                </div>
+              </div>
+
+              {/* Input dot (left side) - drop target for connections */}
+              <div
+                onMouseUp={handleNodeMouseUp}
+                style={{
+                  position: 'absolute',
+                  left: '-8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '14px',
+                  height: '14px',
+                  backgroundColor: connecting && connecting.from !== node.id ? '#22c55e' : '#10b981',
+                  borderRadius: '50%',
+                  border: '2px solid #0a0f1a',
+                  boxShadow: connecting && connecting.from !== node.id
+                    ? '0 0 12px rgba(34, 197, 94, 0.8)'
+                    : '0 0 6px rgba(16, 185, 129, 0.5)',
+                  zIndex: 10,
+                  cursor: connecting ? 'pointer' : 'default',
+                  transition: 'all 0.15s'
+                }}
+                title="Input (drop connection here)"
+              />
+
+              {/* Output dot (right side) - click to delete outgoing connections, drag to create new */}
+              <div
+                onMouseDown={(e) => handleOutputMouseDown(e, node)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  // Delete all connections from this node
+                  const hasOutgoing = connections.some(c => c.from === node.id)
+                  if (hasOutgoing) {
+                    setConnections(prev => {
+                      const updated = prev.filter(c => c.from !== node.id)
+                      saveConnections(updated)
+                      return updated
+                    })
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '-8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '14px',
+                  height: '14px',
+                  backgroundColor: connections.some(c => c.from === node.id) ? '#ef4444' : '#6366f1',
+                  borderRadius: '50%',
+                  border: '2px solid #0a0f1a',
+                  boxShadow: connections.some(c => c.from === node.id)
+                    ? '0 0 6px rgba(239, 68, 68, 0.5)'
+                    : '0 0 6px rgba(99, 102, 241, 0.5)',
+                  cursor: 'crosshair',
+                  zIndex: 10
+                }}
+                title={connections.some(c => c.from === node.id) ? "Click to delete connections, or drag to connect" : "Drag to connect"}
+              />
+            </div>
+          )
+        })}
+
+        {/* Help / Key */}
         <div style={{
           position: 'absolute',
           bottom: '16px',
           left: '16px',
-          background: 'rgba(0,0,0,0.6)',
+          background: 'rgba(0,0,0,0.7)',
           padding: '12px 16px',
           borderRadius: '8px',
-          fontSize: '11px'
+          fontSize: '11px',
+          zIndex: 50
         }}>
-          <div style={{ fontWeight: '600', marginBottom: '8px' }}>Controls</div>
-          <div style={{ color: '#94a3b8', lineHeight: '1.6' }}>
+          <div style={{ fontWeight: '600', marginBottom: '8px' }}>Help / Key</div>
+          <div style={{ color: '#94a3b8', lineHeight: '1.8' }}>
             • Drag nodes to reposition<br />
-            • Drag from dot to connect<br />
-            • Double-click to edit scene<br />
-            • Click connection to delete
+            • <span style={{ color: '#6366f1' }}>●</span> Output → drag to connect<br />
+            • <span style={{ color: '#ef4444' }}>●</span> Output (red) → click to delete<br />
+            • <span style={{ color: '#10b981' }}>●</span> Input → drop here<br />
+            • Double-click → edit scene<br />
+            • Click wire → delete
           </div>
         </div>
       </div>
-    </div>
 
+      {/* Delete Scene Confirmation Modal */}
+      {deleteConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={handleDeleteCancel}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #1e1e3f 0%, #2a2a4a 100%)',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '400px',
+              width: '90%',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', color: '#fff' }}>
+                Delete Scene?
+              </h3>
+              <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: '1.5' }}>
+                Are you sure you want to delete <strong style={{ color: '#fca5a5' }}>"{deleteConfirm.sceneName}"</strong>?
+                <br />
+                <span style={{ color: '#ef4444' }}>This cannot be undone.</span>
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={handleDeleteCancel}
+                style={{
+                  padding: '12px 24px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                style={{
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                Delete Scene
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

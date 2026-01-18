@@ -1,22 +1,22 @@
 # TODO.md
 
 ## Next Task
-- [ ] **Test Pong in browser** - Run `cd Engine && npm run dev` and open http://localhost:5174
+- [ ] **Build Variable Editor UI** - GameDev UI reads .variables.json and renders sliders/toggles/color pickers
+
+## VibeCoder Architecture (Priority Order)
+1. [x] VibeCoder output format in llms.txt ✅
+2. [ ] Variables manifest system (UI reads/edits variables.json)
+3. [ ] Actor modularity (standard interface: init, update, render, getVariables)
+4. [ ] Logic nodes → variables bridge
+5. [ ] Build optimization (bake JSON → JS)
 
 ## Backlog
-- [ ] Add difficulty settings (Easy/Medium/Hard via AI paddle speed)
-- [ ] Add pause functionality
-- [ ] Add high score persistence via SaveManager
-- [ ] Replace playBeep() with actual sound files
+- [ ] State template library (countdown, pause, gameover)
+- [ ] Actor registry manifest
+- [ ] Profiling workflow (FPS, bundle size)
 
-## Completed (2026-01-17)
-- [x] Pong data files (manifest, design, actors, logic, scenes, states, assets)
-- [x] SceneEditor/projects/pong.json with full project structure
-- [x] PongScene.js - complete gameplay (ball, paddles, collision, scoring)
-- [x] PongTitleScene.js - title screen with Play button
-- [x] main.js updated to load custom scenes via game-manifest.json
-- [x] game-manifest.json created with useCustomScenes flag
-- [x] Debug Panel game preview fix
-- [x] Levels System implementation
-- [x] Scene naming convention (Title_Scene_1, L1_Scene_1)
-- [x] Engine llms.txt audit for vibecoding
+## Completed (2026-01-18)
+- [x] VibeCoder output format with min/max/step
+- [x] Delete levels/scenes with custom modals
+- [x] Undo capability (toast + Ctrl+Z)
+- [x] Level Node Editor improvements

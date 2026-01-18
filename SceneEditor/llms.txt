@@ -1,8 +1,39 @@
 # GAMEDEV UI - LLM CONTEXT FILE
 # Last Updated: 2026-01-17
 # Purpose: AI agent context for the GameDev UI scene editor tool
-# Version: 2.5 - AI-First development, PlayFab integration, context persistence
+# Version: 2.8 - Added dual input controls, clarified Capacitor purpose
 
+# ================================================================================
+# 🚀 QUICK START (READ THIS FIRST!)
+# ================================================================================
+#
+# To run the full GameDev system, you need 3 SERVERS running simultaneously.
+#
+# STEP 1: Kill any existing servers on these ports (ALWAYS DO THIS FIRST):
+#   lsof -ti :5174,:5175,:5176 | xargs kill -9 2>/dev/null
+#
+# STEP 2: Install dependencies (if node_modules missing):
+#   cd Engine && npm install
+#   cd SceneEditor && npm install
+#
+# STEP 3: Start all 3 servers:
+#
+#   Terminal 1 - Engine (game runtime):
+#     cd Engine && npm run dev
+#     → http://localhost:5174
+#
+#   Terminal 2 - SceneEditor Backend (file I/O, WebSocket):
+#     cd SceneEditor && npm run server
+#     → http://localhost:5176
+#
+#   Terminal 3 - SceneEditor UI (React app):
+#     cd SceneEditor && npm run dev
+#     → http://localhost:5175
+#
+# IMPORTANT: The Debug Panel embeds the Engine via iframe.
+# All three must be running to test games visually from the UI.
+#
+# ================================================================================
 
 # ================================================================================
 # OVERVIEW
@@ -12,8 +43,16 @@ GameDev UI is a React-based visual game development tool for creating 2D mobile 
 that run on the Canvas Engine. It provides a complete workflow from project creation
 to live testing.
 
+**PRIMARY PURPOSE**: Create high-quality JavaScript/Canvas games that are wrapped
+with Capacitor and distributed via iOS App Store and Google Play Store. These are
+PRODUCTION MOBILE GAMES, not web demos.
+
 Target: 1080x1920 portrait mobile games (packaged via Capacitor)
 Stack: React + Vite (UI), Express (Backend), Vanilla JS (Engine)
+
+**DUAL INPUT FOR TESTING**: Games are tested in browser (mouse/keyboard) but played
+on mobile (touch). Always implement BOTH input methods. See Engine llms.txt for
+the standard input patterns and key mappings.
 
 # ================================================================================
 # ARCHITECTURE
@@ -165,8 +204,48 @@ View Details:
   "build": {
     "target": "mobile",
     "platforms": ["android", "ios"]
-  }
+  },
+  "useCustomScenes": false  // Set to true for custom JS scene classes
 }
+
+## Two Development Workflows
+
+**1. JSON-Driven Games (useCustomScenes: false - DEFAULT)**
+- Scenes are defined entirely by JSON in the project file
+- Engine uses ConfigurableScene to parse and render them
+- Ideal for simple games built entirely in the SceneEditor UI
+- Export creates JSON files that Engine reads directly
+
+**2. Custom JavaScript Scenes (useCustomScenes: true)**
+- Scenes are JavaScript classes extending Scene (e.g., PongScene.js)
+- Registered in Engine/src/js/main.js via loadCustomScenes()
+- Full control over game logic, physics, AI behavior
+- Ideal for complex gameplay like Pong, Breakout, action games
+
+**CRITICAL**: When vibecoding a game with custom JS scenes, you MUST:
+1. Set `useCustomScenes: true` in the project file (projects/*.json)
+2. Export will preserve this flag in game-manifest.json
+3. Custom scene classes must be imported and mapped in Engine/src/js/main.js
+4. The Debug Panel reads this flag and uses custom scenes for in-UI testing
+
+**Without this flag, the game will freeze** in both browser AND Debug Panel because
+the Engine tries to load JSON configs instead of your custom JS scene classes.
+
+Example Pong project with custom scenes:
+```json
+{
+  "name": "Pong",
+  "useCustomScenes": true,
+  ...
+}
+```
+
+**Checklist for Custom Scene Games:**
+- [ ] Project file has `"useCustomScenes": true`
+- [ ] Scene JS files created in Engine/src/js/scenes/ (e.g., PongScene.js)
+- [ ] Scenes imported in main.js
+- [ ] Scenes added to customSceneMap in main.js loadCustomScenes()
+- [ ] Scene names match between project and customSceneMap
 
 ## Scene Naming Convention (MUST FOLLOW)
 
@@ -296,17 +375,25 @@ Project-level gameObjects array:
       "color": "#00ff00",
       "width": 250,
       "height": 40,
-      "spriteId": null,           // If visualType is sprite
+      "spriteId": null,
       "spritePath": null,
-      "variables": {              // Custom variables (editable in UI)
-        "speed": 800,
-        "isPlayer": true,
-        "startX": 540,
-        "startY": 1700
+      "variables": {
+        "speed": { "type": "number", "default": 800, "min": 200, "max": 1500, "step": 50, "label": "Move Speed", "group": "Movement" },
+        "isPlayer": { "type": "boolean", "default": true, "label": "Player Controlled" },
+        "startX": { "type": "number", "default": 540, "min": 0, "max": 1080, "step": 10, "label": "Start X", "group": "Position" },
+        "startY": { "type": "number", "default": 1700, "min": 0, "max": 1920, "step": 10, "label": "Start Y", "group": "Position" }
       }
     }
   ]
 }
+
+**Variable Types for UI Rendering:**
+| Type    | UI Control   | Required Fields          |
+|---------|-------------|--------------------------|
+| number  | Slider      | min, max, step           |
+| boolean | Toggle      | -                        |
+| color   | Color picker| -                        |
+| select  | Dropdown    | options: ["a", "b"]      |
 
 Views:
 - GameObjectListView.jsx: Grid of all Game Objects with filtering by type

@@ -10,7 +10,8 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
   const [isLoading, setIsLoading] = useState(true)
   const [newProjectName, setNewProjectName] = useState('')
   const [showNewProject, setShowNewProject] = useState(false)
-  
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // { filename, name } or null
+
   // Load projects list
   useEffect(() => {
     if (backendConnected) {
@@ -19,7 +20,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
       setIsLoading(false)
     }
   }, [backendConnected])
-  
+
   const loadProjects = async () => {
     try {
       setIsLoading(true)
@@ -31,26 +32,38 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
       setIsLoading(false)
     }
   }
-  
+
   const handleCreateProject = () => {
     const name = newProjectName.trim() || 'Untitled Game'
     onCreateProject(name)
     setNewProjectName('')
     setShowNewProject(false)
   }
-  
-  const handleDeleteProject = async (filename) => {
-    if (!confirm(`Delete project "${filename}"? This cannot be undone.`)) return
-    
+
+  const handleDeleteClick = (e, project) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setDeleteConfirm({ filename: project.filename, name: project.name })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return
+
     try {
-      await api.deleteProject(filename)
+      await api.deleteProject(deleteConfirm.filename)
+      setDeleteConfirm(null)
       loadProjects()
     } catch (error) {
       console.error('Failed to delete project:', error)
       alert('Failed to delete project: ' + error.message)
+      setDeleteConfirm(null)
     }
   }
-  
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirm(null)
+  }
+
   return (
     <div style={{
       width: '100%',
@@ -86,7 +99,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
         }}>GameDev UI</h1>
         <p style={{ fontSize: '16px', color: '#94a3b8' }}>Create amazing mobile games</p>
       </div>
-      
+
       {/* Server Status */}
       {!backendConnected && (
         <div style={{
@@ -148,7 +161,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
           </div>
         </div>
       )}
-      
+
       {/* Main Content */}
       {backendConnected && (
         <div style={{
@@ -196,7 +209,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
               🔄 Refresh
             </button>
           </div>
-          
+
           {/* New Project Modal */}
           {showNewProject && (
             <div style={{
@@ -259,7 +272,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
               </div>
             </div>
           )}
-          
+
           {/* Projects List */}
           <div style={{
             background: 'rgba(255,255,255,0.03)',
@@ -273,7 +286,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
                 ({projects.length})
               </span>
             </h2>
-            
+
             {isLoading ? (
               <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                 Loading projects...
@@ -331,7 +344,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
                       <div>
                         <div style={{ fontSize: '15px', fontWeight: '600' }}>{project.name}</div>
                         <div style={{ fontSize: '12px', color: '#64748b' }}>
-                          {project.sceneCount} scene{project.sceneCount !== 1 ? 's' : ''} • 
+                          {project.sceneCount} scene{project.sceneCount !== 1 ? 's' : ''} •
                           {project.updatedAt ? ` Updated ${new Date(project.updatedAt).toLocaleDateString()}` : ''}
                         </div>
                       </div>
@@ -352,7 +365,7 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
                         Open
                       </button>
                       <button
-                        onClick={() => handleDeleteProject(project.filename)}
+                        onClick={(e) => handleDeleteClick(e, project)}
                         style={{
                           padding: '8px 12px',
                           background: 'rgba(239, 68, 68, 0.2)',
@@ -371,16 +384,95 @@ export default function ProjectManager({ backendConnected, onLoadProject, onCrea
               </div>
             )}
           </div>
-          
+
           {/* Storage Info */}
-          <p style={{ 
-            textAlign: 'center', 
-            fontSize: '12px', 
-            color: '#64748b', 
-            marginTop: '24px' 
+          <p style={{
+            textAlign: 'center',
+            fontSize: '12px',
+            color: '#64748b',
+            marginTop: '24px'
           }}>
             Projects saved to: <code style={{ color: '#94a3b8' }}>SceneEditor/projects/</code>
           </p>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={handleDeleteCancel}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #1e1e3f 0%, #2a2a4a 100%)',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '400px',
+              width: '90%',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', color: '#fff' }}>
+                Delete Project?
+              </h3>
+              <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: '1.5' }}>
+                Are you sure you want to delete <strong style={{ color: '#fca5a5' }}>"{deleteConfirm.name}"</strong>?
+                <br />
+                <span style={{ color: '#ef4444' }}>This cannot be undone.</span>
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={handleDeleteCancel}
+                style={{
+                  padding: '12px 24px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                style={{
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Delete Project
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

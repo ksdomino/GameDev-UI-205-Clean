@@ -23,6 +23,7 @@ import { connectFileWatcher, disconnectFileWatcher } from './services/api'
  */
 export default function App() {
   const [view, setView] = useState('projects')
+  const [previousView, setPreviousView] = useState(null) // Track where user came from
   const [project, setProject] = useState(null)
   const [projectFilename, setProjectFilename] = useState(null)
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0)
@@ -31,6 +32,10 @@ export default function App() {
   const [backendConnected, setBackendConnected] = useState(false)
   const [saveStatus, setSaveStatus] = useState('saved') // 'saved', 'saving', 'unsaved', 'error'
   const [lastError, setLastError] = useState(null)
+
+  // Undo state
+  const [undoItem, setUndoItem] = useState(null) // { type: 'level'|'scene', data, levelIndex? }
+  const [showUndoToast, setShowUndoToast] = useState(false)
 
   // Check backend connection and setup file watcher on mount
   useEffect(() => {
@@ -98,6 +103,59 @@ export default function App() {
     setProject(prev => ({ ...prev, ...updates, updatedAt: new Date().toISOString() }))
   }, [])
 
+  // Undo: store deleted item for restore
+  const pushUndo = useCallback((type, data, levelIndex = null) => {
+    setUndoItem({ type, data, levelIndex })
+    setShowUndoToast(true)
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => setShowUndoToast(false), 5000)
+  }, [])
+
+  // Undo: restore last deleted item
+  const performUndo = useCallback(() => {
+    if (!undoItem || !project) return
+
+    if (undoItem.type === 'level') {
+      // Restore level
+      updateProject({
+        levels: [...(project.levels || []), undoItem.data]
+      })
+    } else if (undoItem.type === 'scene') {
+      // Restore scene to project.scenes
+      const updatedScenes = [...(project.scenes || []), undoItem.data]
+
+      // Also restore to level.sceneNames if levelIndex provided
+      let updatedLevels = project.levels
+      if (undoItem.levelIndex !== null && project.levels?.[undoItem.levelIndex]) {
+        updatedLevels = project.levels.map((lvl, i) =>
+          i === undoItem.levelIndex
+            ? { ...lvl, sceneNames: [...(lvl.sceneNames || []), undoItem.data.name] }
+            : lvl
+        )
+      }
+
+      updateProject({
+        levels: updatedLevels,
+        scenes: updatedScenes
+      })
+    }
+
+    setUndoItem(null)
+    setShowUndoToast(false)
+  }, [undoItem, project, updateProject])
+
+  // Keyboard listener for Ctrl+Z / Cmd+Z undo
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && undoItem) {
+        e.preventDefault()
+        performUndo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undoItem, performUndo])
+
   // Load a project
   const loadProject = useCallback(async (filename) => {
     try {
@@ -162,8 +220,19 @@ export default function App() {
 
   // Navigation handlers
   const openSceneEditor = (sceneIndex) => {
+    setPreviousView(view) // Remember where we came from
     setSelectedSceneIndex(sceneIndex)
     setView('editor')
+  }
+
+  // Go back from editor to wherever user came from
+  const goBackFromEditor = () => {
+    if (previousView === 'levelSelector') {
+      setView('levelSelector')
+    } else {
+      setView('flowmap') // Default fallback to flowmap
+    }
+    setPreviousView(null)
   }
 
   const openDashboard = () => setView('dashboard')
@@ -252,6 +321,8 @@ export default function App() {
           updateProject={updateProject}
           onBack={openDashboard}
           onEditLevel={openLevelEditor}
+          onOpenScene={openSceneEditor}
+          onPushUndo={pushUndo}
         />
       )}
 
@@ -270,6 +341,7 @@ export default function App() {
           onOpenScene={openSceneEditor}
           onBack={openLevelSelector}
           levelIndex={selectedLevelIndex}
+          onPushUndo={pushUndo}
         />
       )}
 
@@ -278,7 +350,7 @@ export default function App() {
           project={project}
           updateProject={updateProject}
           sceneIndex={selectedSceneIndex}
-          onBack={openDashboard}
+          onBack={goBackFromEditor}
           onOpenDebug={openDebugPanel}
         />
       )}
@@ -300,6 +372,45 @@ export default function App() {
       )}
 
 
+
+      {/* Undo Toast */}
+      {showUndoToast && undoItem && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, #1e1e3f 0%, #2a2a4a 100%)',
+          borderRadius: '12px',
+          padding: '12px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          zIndex: 2000
+        }}>
+          <span style={{ color: '#fff', fontSize: '14px' }}>
+            Deleted {undoItem.type === 'level' ? `"${undoItem.data.name}"` : `"${undoItem.data.name}"`}
+          </span>
+          <button
+            onClick={performUndo}
+            style={{
+              padding: '6px 16px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Undo
+          </button>
+          <span style={{ color: '#64748b', fontSize: '11px' }}>Ctrl+Z</span>
+        </div>
+      )}
 
       <ConnectionStatus />
     </div>

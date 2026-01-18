@@ -144,7 +144,7 @@ export default function AssetLibrary({
             <header style={styles.header}>
                 <div style={styles.headerLeft}>
                     {onBack && !pickerMode && (
-                        <button onClick={onBack} style={styles.backButton}>🏠 Home</button>
+                        <button onClick={onBack} style={styles.backButton}>← Back to Home 🏠</button>
                     )}
                     <div>
                         <h1 style={styles.title}>📦 Asset Library</h1>

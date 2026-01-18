@@ -1,0 +1,263 @@
+{
+  "sceneName": "L1_Scene_1",
+  "canvasSize": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "assets": {
+    "images": [],
+    "audio": [],
+    "videos": []
+  },
+  "states": [
+    {
+      "name": "PLAYING",
+      "duration": 0,
+      "clearLayers": false,
+      "layers": {
+        "BG_FAR": [
+          {
+            "type": "shape",
+            "id": "background",
+            "shape": "rect",
+            "x": 540,
+            "y": 960,
+            "width": 1080,
+            "height": 1920,
+            "color": "#0f172a",
+            "fill": true,
+            "alpha": 1
+          }
+        ],
+        "BG_NEAR": [],
+        "VIDEO_IMAGE": [],
+        "SHAPES": [
+          {
+            "type": "shape",
+            "id": "centerLine",
+            "shape": "rect",
+            "x": 540,
+            "y": 960,
+            "width": 1080,
+            "height": 4,
+            "color": "#ffffff",
+            "fill": true,
+            "alpha": 0.2
+          },
+          {
+            "type": "shape",
+            "id": "leftWall",
+            "shape": "rect",
+            "x": 5,
+            "y": 960,
+            "width": 10,
+            "height": 1920,
+            "color": "#334155",
+            "fill": true,
+            "alpha": 1
+          },
+          {
+            "type": "shape",
+            "id": "rightWall",
+            "shape": "rect",
+            "x": 1075,
+            "y": 960,
+            "width": 10,
+            "height": 1920,
+            "color": "#334155",
+            "fill": true,
+            "alpha": 1
+          }
+        ],
+        "SPRITES": [
+          {
+            "type": "shape",
+            "id": "ball",
+            "shape": "circle",
+            "x": 540,
+            "y": 960,
+            "radius": 25,
+            "color": "#ffffff",
+            "fill": true,
+            "alpha": 1,
+            "variables": {
+              "directionX": 1,
+              "directionY": -1,
+              "speed": 600
+            }
+          },
+          {
+            "type": "shape",
+            "id": "playerPaddle",
+            "shape": "rect",
+            "x": 540,
+            "y": 1750,
+            "width": 200,
+            "height": 30,
+            "color": "#4ade80",
+            "fill": true,
+            "alpha": 1,
+            "variables": {
+              "speed": 1000
+            }
+          },
+          {
+            "type": "shape",
+            "id": "aiPaddle",
+            "shape": "rect",
+            "x": 540,
+            "y": 170,
+            "width": 200,
+            "height": 30,
+            "color": "#f87171",
+            "fill": true,
+            "alpha": 1,
+            "variables": {
+              "speed": 450,
+              "difficulty": 0.7
+            }
+          }
+        ],
+        "TEXT": [
+          {
+            "type": "text",
+            "id": "scoreDisplay",
+            "content": "0 - 0",
+            "x": 540,
+            "y": 960,
+            "fontSize": 120,
+            "fontFamily": "Arial",
+            "fontWeight": "bold",
+            "color": "#ffffff",
+            "textAlign": "center",
+            "alpha": 0.15,
+            "variables": {
+              "playerScore": 0,
+              "aiScore": 0,
+              "winScore": 5
+            }
+          }
+        ],
+        "UI_BUTTONS": []
+      },
+      "transition": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "PLAYER_WINS",
+      "duration": 0,
+      "clearLayers": false,
+      "layers": {
+        "BG_FAR": [
+          {
+            "type": "shape",
+            "id": "background",
+            "shape": "rect",
+            "x": 540,
+            "y": 960,
+            "width": 1080,
+            "height": 1920,
+            "color": "#0f172a",
+            "fill": true,
+            "alpha": 1
+          }
+        ],
+        "BG_NEAR": [],
+        "VIDEO_IMAGE": [],
+        "SHAPES": [],
+        "SPRITES": [],
+        "TEXT": [
+          {
+            "type": "text",
+            "id": "winText",
+            "content": "YOU WIN!",
+            "x": 540,
+            "y": 800,
+            "fontSize": 96,
+            "fontFamily": "Arial",
+            "fontWeight": "bold",
+            "color": "#4ade80",
+            "textAlign": "center",
+            "alpha": 1
+          },
+          {
+            "type": "text",
+            "id": "tapText",
+            "content": "Tap to play again",
+            "x": 540,
+            "y": 1000,
+            "fontSize": 36,
+            "fontFamily": "Arial",
+            "fontWeight": "normal",
+            "color": "#94a3b8",
+            "textAlign": "center",
+            "alpha": 1
+          }
+        ],
+        "UI_BUTTONS": []
+      },
+      "transition": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "AI_WINS",
+      "duration": 0,
+      "clearLayers": false,
+      "layers": {
+        "BG_FAR": [
+          {
+            "type": "shape",
+            "id": "background",
+            "shape": "rect",
+            "x": 540,
+            "y": 960,
+            "width": 1080,
+            "height": 1920,
+            "color": "#0f172a",
+            "fill": true,
+            "alpha": 1
+          }
+        ],
+        "BG_NEAR": [],
+        "VIDEO_IMAGE": [],
+        "SHAPES": [],
+        "SPRITES": [],
+        "TEXT": [
+          {
+            "type": "text",
+            "id": "loseText",
+            "content": "GAME OVER",
+            "x": 540,
+            "y": 800,
+            "fontSize": 96,
+            "fontFamily": "Arial",
+            "fontWeight": "bold",
+            "color": "#f87171",
+            "textAlign": "center",
+            "alpha": 1
+          },
+          {
+            "type": "text",
+            "id": "tapText",
+            "content": "Tap to try again",
+            "x": 540,
+            "y": 1000,
+            "fontSize": 36,
+            "fontFamily": "Arial",
+            "fontWeight": "normal",
+            "color": "#94a3b8",
+            "textAlign": "center",
+            "alpha": 1
+          }
+        ],
+        "UI_BUTTONS": []
+      },
+      "transition": {
+        "type": "none"
+      }
+    }
+  ]
+}
