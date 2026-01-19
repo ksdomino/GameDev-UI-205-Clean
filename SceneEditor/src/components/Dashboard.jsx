@@ -34,11 +34,11 @@ export default function Dashboard({
   }
 
   // Calculate stats
-  const totalStates = project.scenes.reduce((sum, s) => sum + s.states.length, 0)
-  const totalEntities = project.scenes.reduce((sum, scene) => {
+  const totalSubScenes = project.scenes.reduce((sum, s) => sum + s.states.length, 0)
+  const totalActors = project.scenes.reduce((sum, scene) => {
     return sum + scene.states.reduce((stateSum, state) => {
-      return stateSum + Object.values(state.layers).reduce((layerSum, entities) => {
-        return layerSum + entities.length
+      return stateSum + Object.values(state.layers).reduce((layerSum, actors) => {
+        return layerSum + actors.length
       }, 0)
     }, 0)
   }, 0)
@@ -137,7 +137,7 @@ export default function Dashboard({
           )}
 
           <button onClick={onOpenDebug} style={navButtonStyle('linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)')}>
-            🐛 Debug
+            🐛 Test & Debug
           </button>
 
           {onExportGame && (
@@ -161,7 +161,7 @@ export default function Dashboard({
                 opacity: isExporting ? 0.7 : 1
               }}
             >
-              {isExporting ? '⌛ Exporting...' : '🌐 Test in Browser'}
+              {isExporting ? '⌛ Exporting...' : '🌐 Test in a new tab'}
             </button>
           )}
 
@@ -257,7 +257,7 @@ export default function Dashboard({
 
           {/* Stats - Inline and Small */}
           <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
-            {project.canvas.width}×{project.canvas.height} • {project.scenes.length} scenes • {totalStates} states • {totalEntities} entities • {totalAssets} assets
+            {project.canvas.width}×{project.canvas.height} • {project.scenes.length} scenes • {totalSubScenes} sub-scenes • {totalActors} actors • {totalAssets} assets
           </p>
         </div>
 
@@ -314,7 +314,7 @@ export default function Dashboard({
               🚀 Testing
             </h3>
             <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
-              Use <strong>Test in Browser</strong> to preview, or <strong>Test on Device</strong> for Android.
+              Use <strong>Test in a new tab</strong> to preview, or <strong>Test on Device</strong> for Android.
             </p>
           </div>
 

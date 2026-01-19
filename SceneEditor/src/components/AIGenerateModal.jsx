@@ -12,19 +12,19 @@ export default function AIGenerateModal({ project, scene, state, onClose, onGene
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
-  
+
   // Load API key from localStorage
   useEffect(() => {
     const savedKey = localStorage.getItem('claude-api-key')
     if (savedKey) setApiKey(savedKey)
   }, [])
-  
+
   // Save API key
   const saveApiKey = (key) => {
     setApiKey(key)
     localStorage.setItem('claude-api-key', key)
   }
-  
+
   // Generate prompt examples based on mode
   const getPromptPlaceholder = () => {
     switch (mode) {
@@ -38,18 +38,18 @@ export default function AIGenerateModal({ project, scene, state, onClose, onGene
         return 'Describe what you want to create...'
     }
   }
-  
+
   // Build comprehensive system prompt with llms.txt context and rules
   const buildSystemPrompt = () => {
     const canvasInfo = `Canvas: ${project.canvas.width}x${project.canvas.height} (${project.canvas.orientation})`
     const layerInfo = `Available layers (bottom to top): ${LAYERS.map(l => l.name).join(', ')}`
-    
+
     // Get available assets info
     const sceneAssets = scene?.assets || { images: [], audio: [] }
-    const assetsInfo = sceneAssets.images.length > 0 
+    const assetsInfo = sceneAssets.images.length > 0
       ? `Available assets: ${sceneAssets.images.map(a => a.id || a).join(', ')}`
       : 'No assets uploaded yet - use placeholder assetIds'
-    
+
     return `You are a game scene generator for the Canvas Engine - a high-performance vanilla JavaScript HTML5 Canvas game engine for 2D mobile games.
 
 # ENGINE CONTEXT
@@ -70,14 +70,14 @@ ${assetsInfo}
 | TEXT | 5 | UI text, labels, scores, messages |
 | UI_BUTTONS | 6 | Touch buttons (always on top) |
 
-# ENTITY JSON SCHEMAS
+# ACTOR JSON SCHEMAS
 
 1. SPRITE (for images/characters)
 {
   "type": "sprite",
   "id": "unique_id",
   "assetId": "image_asset_id",
-  "x": ${project.canvas.width/2}, "y": ${project.canvas.height/2},
+  "x": ${project.canvas.width / 2}, "y": ${project.canvas.height / 2},
   "width": 200, "height": 200,
   "rotation": 0,
   "alpha": 1,
@@ -91,7 +91,7 @@ ${assetsInfo}
   "type": "button",
   "id": "unique_id",
   "text": "BUTTON TEXT",
-  "x": ${project.canvas.width/2}, "y": ${project.canvas.height/2},
+  "x": ${project.canvas.width / 2}, "y": ${project.canvas.height / 2},
   "width": 300, "height": 100,
   "color": "#6366f1",
   "alpha": 1,
@@ -104,7 +104,7 @@ onClick actions: "switchScene", "switchState", "playSound", "none"
   "type": "text",
   "id": "unique_id",
   "content": "Hello World",
-  "x": ${project.canvas.width/2}, "y": 400,
+  "x": ${project.canvas.width / 2}, "y": 400,
   "font": "48px Arial",
   "color": "#ffffff",
   "textAlign": "center",
@@ -143,10 +143,10 @@ Shape types: "rect", "circle", "line"
   "duration": 2.0,
   "clearLayers": false,
   "layers": {
-    "BG_FAR": [/* entities */],
-    "SPRITES": [/* entities */],
-    "TEXT": [/* entities */],
-    "UI_BUTTONS": [/* entities */]
+    "BG_FAR": [/* actors */],
+    "SPRITES": [/* actors */],
+    "TEXT": [/* actors */],
+    "UI_BUTTONS": [/* actors */]
   },
   "transition": {
     "type": "timer|button|none",
@@ -158,7 +158,7 @@ Shape types: "rect", "circle", "line"
 
 # CRITICAL RULES
 1. x,y are CENTER of entity (not top-left)
-2. Canvas center: x=${project.canvas.width/2}, y=${project.canvas.height/2}
+2. Canvas center: x=${project.canvas.width / 2}, y=${project.canvas.height / 2}
 3. Respond with ONLY valid JSON - no markdown, no explanation
 4. Use unique IDs (e.g., "title_text", "play_button", "bg_sprite")
 5. For mode "entities": return array []
@@ -171,28 +171,28 @@ Shape types: "rect", "circle", "line"
 # MOBILE GAME BEST PRACTICES
 - Keep buttons large (min 100px height) for touch
 - Use high contrast colors for text
-- Center important content horizontally (x=${project.canvas.width/2})
-- Leave margins from edges (avoid x < 50 or x > ${project.canvas.width-50})
+- Center important content horizontally (x=${project.canvas.width / 2})
+- Leave margins from edges (avoid x < 50 or x > ${project.canvas.width - 50})
 - Space elements vertically by at least 150px
 - Use clear, action-oriented button text ("PLAY", "START", "CONTINUE")`
   }
-  
+
   // Call Claude API
   const callClaudeAPI = async () => {
     if (!apiKey) {
       setError('Please enter your Claude API key')
       return
     }
-    
+
     if (!prompt.trim()) {
       setError('Please enter a prompt describing what to generate')
       return
     }
-    
+
     setIsLoading(true)
     setError(null)
     setResult(null)
-    
+
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -209,29 +209,29 @@ Shape types: "rect", "circle", "line"
           messages: [
             {
               role: 'user',
-              content: `Generate ${mode === 'entities' ? 'entities' : mode === 'state' ? 'a state' : 'states'} for: ${prompt}\n\nCurrent scene: ${scene.name}\nCurrent state: ${state?.name || 'none'}\n${mode === 'entities' ? `Target layer: ${targetLayer}` : ''}\n\nRespond with only the JSON, no explanation.`
+              content: `Generate ${mode === 'entities' ? 'actors' : mode === 'state' ? 'a state' : 'states'} for: ${prompt}\n\nCurrent scene: ${scene.name}\nCurrent state: ${state?.name || 'none'}\n${mode === 'entities' ? `Target layer: ${targetLayer}` : ''}\n\nRespond with only the JSON, no explanation.`
             }
           ]
         })
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error?.message || `API error: ${response.status}`)
       }
-      
+
       const data = await response.json()
       const content = data.content[0].text
-      
+
       // Parse JSON from response
       const jsonMatch = content.match(/\[[\s\S]*\]|\{[\s\S]*\}/)
       if (!jsonMatch) {
         throw new Error('Could not parse JSON from response')
       }
-      
+
       const parsed = JSON.parse(jsonMatch[0])
       setResult(parsed)
-      
+
     } catch (err) {
       console.error('Claude API error:', err)
       setError(err.message)
@@ -239,11 +239,11 @@ Shape types: "rect", "circle", "line"
       setIsLoading(false)
     }
   }
-  
+
   // Apply the generated result
   const applyResult = () => {
     if (!result) return
-    
+
     if (mode === 'entities') {
       // result is an array of entities
       onGenerate(Array.isArray(result) ? result : [result], targetLayer)
@@ -256,51 +256,31 @@ Shape types: "rect", "circle", "line"
       states.forEach(s => onGenerateState(s))
     }
   }
-  
+
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.header}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px' }}>✨ AI Generate</h2>
+            <h2 style={{ margin: 0, fontSize: '18px' }}>✨ AI Content Generator</h2>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>
-              Use Claude AI to generate scene content
+              Harness LLMs to build your game world
             </p>
           </div>
           <button onClick={onClose} style={styles.closeButton}>✕</button>
         </div>
-        
-        {/* API Key */}
-        <div style={styles.section}>
-          <label style={styles.label}>Claude API Key</label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => saveApiKey(e.target.value)}
-              placeholder="sk-ant-..."
-              style={{ ...styles.input, flex: 1 }}
-            />
-            <a
-              href="https://console.anthropic.com/account/keys"
-              target="_blank"
-              rel="noopener"
-              style={styles.linkButton}
-            >
-              Get Key
-            </a>
-          </div>
-        </div>
-        
+
+
+
         {/* Mode Selection */}
         <div style={styles.section}>
           <label style={styles.label}>What to Generate</label>
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { id: 'entities', label: '📦 Entities', desc: 'Add to current state' },
-              { id: 'state', label: '📍 New State', desc: 'Create a new state' },
-              { id: 'full-scene', label: '🎬 Full Scene', desc: 'Multiple states' }
+              { id: 'entities', label: '🎭 Actors', desc: 'Add to current sub-scene' },
+              { id: 'state', label: '📍 Sub-Scene', desc: 'Create a new sub-scene' },
+              { id: 'full-scene', label: '🌍 Full Scene', desc: 'Complete sequence' }
             ].map(m => (
               <button
                 key={m.id}
@@ -317,7 +297,7 @@ Shape types: "rect", "circle", "line"
             ))}
           </div>
         </div>
-        
+
         {/* Target Layer (for entities mode) */}
         {mode === 'entities' && (
           <div style={styles.section}>
@@ -333,7 +313,7 @@ Shape types: "rect", "circle", "line"
             </select>
           </div>
         )}
-        
+
         {/* Prompt */}
         <div style={styles.section}>
           <label style={styles.label}>Describe What You Want</label>
@@ -345,7 +325,25 @@ Shape types: "rect", "circle", "line"
             style={{ ...styles.input, resize: 'vertical' }}
           />
         </div>
-        
+
+        {/* Third Party API Keys (Dummy Fields) */}
+        <div style={{ ...styles.section, background: 'rgba(0,0,0,0.1)', padding: '12px', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+          <label style={{ ...styles.label, fontSize: '9px', opacity: 0.6 }}>Third Party Integrations (Optional)</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <input type="password" placeholder="Gemini API Key" style={{ ...styles.input, padding: '6px 10px', fontSize: '11px' }} />
+            <input type="password" placeholder="OpenAI API Key" style={{ ...styles.input, padding: '6px 10px', fontSize: '11px' }} />
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => saveApiKey(e.target.value)}
+                placeholder="Claude API Key (Required for now)"
+                style={{ ...styles.input, padding: '6px 10px', fontSize: '11px', flex: 1, borderColor: apiKey ? 'rgba(99, 102, 241, 0.4)' : 'rgba(239, 68, 68, 0.3)' }}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Generate Button */}
         <button
           onClick={callClaudeAPI}
@@ -357,14 +355,14 @@ Shape types: "rect", "circle", "line"
         >
           {isLoading ? '⏳ Generating...' : '✨ Generate'}
         </button>
-        
+
         {/* Error */}
         {error && (
           <div style={styles.error}>
             ⚠️ {error}
           </div>
         )}
-        
+
         {/* Result Preview */}
         {result && (
           <div style={styles.section}>
@@ -376,7 +374,7 @@ Shape types: "rect", "circle", "line"
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
               <button onClick={applyResult} style={styles.applyButton}>
-                ✓ Apply to {mode === 'entities' ? targetLayer : 'Scene'}
+                ✓ Apply to {mode === 'entities' ? targetLayer : 'Sub-Scene'}
               </button>
               <button onClick={() => setResult(null)} style={styles.cancelButton}>
                 Try Again
@@ -384,7 +382,7 @@ Shape types: "rect", "circle", "line"
             </div>
           </div>
         )}
-        
+
         {/* Tips */}
         <div style={styles.tips}>
           <h4 style={{ margin: '0 0 8px', fontSize: '12px' }}>💡 Tips</h4>

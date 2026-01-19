@@ -55,7 +55,7 @@ export const createDefaultProject = () => ({
     fonts: []
   },
 
-  // Game Objects (reusable entities like Ball, Paddle, Enemy)
+  // Game Objects (reusable actors like Ball, Paddle, Enemy)
   gameObjects: [],
 
   // Build settings
@@ -85,7 +85,7 @@ export const createDefaultScene = (name = 'NewScene', isStart = false) => ({
     audio: []
   },
 
-  // States within this scene
+  // Sub-scenes (states) within this scene
   states: [
     {
       name: 'MAIN',
@@ -144,9 +144,9 @@ export const getNextSceneNumber = (existingSceneNames, levelNumber) => {
 };
 
 /**
- * Create a default state
+ * Create a default sub-scene (state)
  */
-export const createDefaultState = (name = 'NEW_STATE') => ({
+export const createDefaultState = (name = 'NEW_SUB_SCENE') => ({
   name,
   duration: 2.0,
   clearLayers: true,
@@ -162,7 +162,7 @@ export const createDefaultState = (name = 'NEW_STATE') => ({
   transition: {
     type: 'timer',
     duration: 2.0,
-    nextState: null
+    nextSubScene: null
   }
 });
 
@@ -172,21 +172,23 @@ export const createDefaultState = (name = 'NEW_STATE') => ({
 export const LAYERS = [
   { name: 'BG_FAR', label: 'Background (Far)', icon: '🌄' },
   { name: 'BG_NEAR', label: 'Background (Near)', icon: '🏞️' },
-  { name: 'VIDEO_IMAGE', label: 'Video/Image', icon: '🖼️' },
+  { name: 'VIDEO_IMAGE', label: 'Video', icon: '📽️' },
   { name: 'SHAPES', label: 'Shapes', icon: '⬡' },
   { name: 'SPRITES', label: 'Sprites', icon: '🎮' },
   { name: 'TEXT', label: 'Text', icon: '📝' },
-  { name: 'UI_BUTTONS', label: 'UI Buttons', icon: '🔘' }
+  { name: 'UI_BUTTONS', label: 'UI Buttons', icon: '🔘' },
+  { name: 'SYSTEM', label: 'System (Hidden)', icon: '⚙️', hidden: true }
 ];
 
 /**
- * Available entity types
+ * Available actor types
  */
 export const ENTITY_TYPES = [
-  { type: 'sprite', label: 'Image', icon: '🖼️', description: 'Sprite, background, or any image' },
-  { type: 'button', label: 'Button', icon: '🔘', description: 'Clickable UI button' },
-  { type: 'text', label: 'Text', icon: '📝', description: 'Text display' },
-  { type: 'shape', label: 'Shape', icon: '⬡', description: 'Rectangle, circle, or line' }
+  { type: 'sprite', label: 'Add Image', icon: '🖼️', description: 'Sprite, background, or any image' },
+  { type: 'button', label: 'Add Button', icon: '🔘', description: 'Clickable UI button' },
+  { type: 'text', label: 'Add Text', icon: '📝', description: 'Text display' },
+  { type: 'shape', label: 'Add Shape', icon: '⬡', description: 'Rectangle, circle, or line' },
+  { type: 'logic', label: 'Add Logic', icon: '⚙️', description: 'Invisible logic controller' }
 ];
 
 /**
@@ -262,5 +264,5 @@ export const TRANSITION_TYPES = [
   { type: 'none', label: 'None (manual)' },
   { type: 'timer', label: 'Timer (auto after duration)' },
   { type: 'button', label: 'Button Click' },
-  { type: 'condition', label: 'Condition (custom logic)' }
+  { type: 'condition', label: 'Condition' }
 ];

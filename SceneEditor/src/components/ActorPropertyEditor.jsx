@@ -3,9 +3,9 @@ import { ANIMATION_TYPES } from '../data/defaultProject'
 import { getActors, getActor } from '../services/api'
 
 /**
- * Entity Property Editor - Edit properties for different entity types
+ * Actor Property Editor - Edit properties for different actor types
  */
-export default function EntityPropertyEditor({
+export default function ActorPropertyEditor({
   entity,
   onChange,
   onDelete,
@@ -14,7 +14,8 @@ export default function EntityPropertyEditor({
   states,
   availableAssets = { images: [], sprites: [], backgrounds: [], audio: [] },
   onOpenAssetManager,
-  onOpenLogic
+  onOpenLogic,
+  onOpenAnimation
 }) {
   const [actors, setActors] = useState([])
   const [actorTemplate, setActorTemplate] = useState(null)
@@ -82,7 +83,7 @@ export default function EntityPropertyEditor({
         />
       </Field>
 
-      {/* Common: Position */}
+      {/* Common: Position & Align */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
         <Field label="X">
           <input type="number" value={entity.x || 0} onChange={(e) => handleChange('x', parseFloat(e.target.value) || 0)} style={styles.input} />
@@ -90,6 +91,20 @@ export default function EntityPropertyEditor({
         <Field label="Y">
           <input type="number" value={entity.y || 0} onChange={(e) => handleChange('y', parseFloat(e.target.value) || 0)} style={styles.input} />
         </Field>
+      </div>
+
+      {/* Align Buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', gap: '2px' }}>
+          <button onClick={() => handleChange('x', (entity.width || 100) / 2)} style={styles.alignBtn} title="Align Left">⇤</button>
+          <button onClick={() => handleChange('x', project.canvas.width / 2)} style={styles.alignBtn} title="Align Center">↔</button>
+          <button onClick={() => handleChange('x', project.canvas.width - (entity.width || 100) / 2)} style={styles.alignBtn} title="Align Right">⇥</button>
+        </div>
+        <div style={{ display: 'flex', gap: '2px' }}>
+          <button onClick={() => handleChange('y', (entity.height || 100) / 2)} style={styles.alignBtn} title="Align Top">⤒</button>
+          <button onClick={() => handleChange('y', project.canvas.height / 2)} style={styles.alignBtn} title="Align Middle">↕</button>
+          <button onClick={() => handleChange('y', project.canvas.height - (entity.height || 100) / 2)} style={styles.alignBtn} title="Align Bottom">⤓</button>
+        </div>
       </div>
 
       {/* Global Actor & Interactivity */}
@@ -101,22 +116,13 @@ export default function EntityPropertyEditor({
               onChange={(e) => handleChange('actorRef', e.target.value)}
               style={{ ...styles.input, flex: 1 }}
             >
-              <option value="">None (Static Entity)</option>
+              <option value="">None (Static Actor)</option>
               {actors.map(actor => (
                 <option key={actor.id} value={actor.id}>
                   {actor.id} ({actor.type || 'General'})
                 </option>
               ))}
             </select>
-            {entity.actorRef && onOpenLogic && (
-              <button
-                onClick={() => onOpenLogic(entity.actorRef)}
-                style={{ ...styles.uploadButton, padding: '4px 8px' }}
-                title="Edit Actor Logic"
-              >
-                🔗
-              </button>
-            )}
             <button
               onClick={loadActors}
               style={{ ...styles.addButton, padding: '4px 8px' }}
@@ -414,7 +420,12 @@ export default function EntityPropertyEditor({
 
       {/* Animation */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px', marginTop: '4px' }}>
-        <h4 style={{ fontSize: '11px', fontWeight: '600', marginBottom: '8px' }}>🎭 Animation</h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h4 style={{ fontSize: '11px', fontWeight: '600', margin: 0 }}>🎭 Animation</h4>
+          <button onClick={onOpenAnimation} style={{ ...styles.addButton, padding: '2px 8px', fontSize: '10px' }}>
+            🎞️ Open Timeline
+          </button>
+        </div>
         <Field label="Type">
           <select
             value={entity.animation?.type || 'none'}
@@ -528,7 +539,7 @@ export default function EntityPropertyEditor({
           )
         })}
 
-        {/* Entity-Only Variables */}
+        {/* Actor-Only Variables */}
         {entity.variables && Object.entries(entity.variables)
           .filter(([key]) => !actorTemplate?.variables?.[key])
           .map(([key, value], i) => (
@@ -593,7 +604,7 @@ export default function EntityPropertyEditor({
 
       {/* Delete button */}
       <button onClick={onDelete} style={styles.deleteButton}>
-        🗑️ Delete Entity
+        🗑️ Delete Actor
       </button>
     </div>
   )
@@ -679,5 +690,19 @@ const styles = {
     color: '#a5b4fc',
     cursor: 'pointer',
     transition: 'all 0.2s ease'
+  },
+  alignBtn: {
+    flex: 1,
+    padding: '4px 0',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '4px',
+    color: '#cbd5e1',
+    fontSize: '14px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.15s'
   }
 }

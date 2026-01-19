@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getLogicSheet, saveLogicSheet } from '../services/api';
 import LogicStack from './LogicStack';
+import AIGenerateModal from './AIGenerateModal';
 
 // Node type colors (matching the 6 node types)
 const NODE_COLORS = {
@@ -50,6 +51,7 @@ export function NodeEditor({ actorId, onClose }) {
     const [viewMode, setViewMode] = useState('stack'); // 'stack' or 'nodes'
     const [createActionModal, setCreateActionModal] = useState(false); // Diamond tier - action creation
     const [actionName, setActionName] = useState(''); // Name input for new action
+    const [showAIModal, setShowAIModal] = useState(false);
     const canvasRef = useRef(null);
 
     // Dragging state
@@ -1091,6 +1093,17 @@ The connections define the execution order. Follow the arrows from event nodes t
                                     '🔄 Sync to Engine'}
                     </button>
 
+                    {/* AI Generate Button (Phase 2) */}
+                    <button
+                        onClick={() => setShowAIModal(true)}
+                        style={{
+                            ...styles.actionButton,
+                            background: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)'
+                        }}
+                    >
+                        ✨ AI Generate
+                    </button>
+
                     {/* Mode B: Generate IDE Prompt */}
                     <button
                         onClick={generatePrompt}
@@ -1623,6 +1636,19 @@ The connections define the execution order. Follow the arrows from event nodes t
                         ))}
                     </div>
                 </div>
+            )}
+
+            {showAIModal && (
+                <AIGenerateModal
+                    project={{ canvas: { width: 1080, height: 1920, orientation: 'portrait' } }}
+                    scene={{ name: actorId }}
+                    onClose={() => setShowAIModal(false)}
+                    onGenerate={(nodes) => {
+                        // Handle generated logic nodes
+                        console.log('Generated AI nodes:', nodes);
+                        setShowAIModal(false);
+                    }}
+                />
             )}
         </div>
     );

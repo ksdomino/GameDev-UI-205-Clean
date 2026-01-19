@@ -6,6 +6,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { getActors, getLogicSheets } from '../services/api';
+import AIGenerateModal from './AIGenerateModal';
 
 // Actor type colors (matching node type colors)
 const ACTOR_TYPE_COLORS = {
@@ -37,6 +38,7 @@ export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
     const [newActorId, setNewActorId] = useState('');
     const [newActorType, setNewActorType] = useState('generic');
     const [createError, setCreateError] = useState(null);
+    const [showAIModal, setShowAIModal] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -139,6 +141,17 @@ export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
                 <h3 style={styles.title}>🎭 Actors ({actors.length})</h3>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
+                        onClick={() => setShowAIModal(true)}
+                        style={{
+                            ...styles.addButton,
+                            background: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
+                            border: 'none'
+                        }}
+                        title="Generate Actor with AI"
+                    >
+                        ✨ AI
+                    </button>
+                    <button
                         onClick={() => setIsCreating(true)}
                         style={styles.addButton}
                         title="Create New Actor"
@@ -185,33 +198,57 @@ export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
 
                     return (
                         <div
+                            key={actor.id}
                             style={{
                                 ...styles.actorCard,
-                                borderColor: isSelected ? typeColor : 'transparent',
-                                backgroundColor: isSelected ? `${typeColor}20` : '#1e293b'
+                                borderColor: isSelected ? typeColor : 'rgba(255,255,255,0.05)',
+                                backgroundColor: isSelected ? `${typeColor}20` : 'rgba(255,255,255,0.02)',
+                                flex: '0 0 auto',
+                                width: '100%',
+                                display: 'flex',
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '10px 14px'
                             }}
                             onClick={() => onSelectActor?.(actor)}
                             title={actor.description || actor.id}
                         >
-                            <div style={styles.actorHeader}>
-                                <span style={styles.actorIcon}>{typeIcon}</span>
-                                <span style={styles.actorName}>{actor.id}</span>
-                            </div>
-
-                            <div style={styles.actorMeta}>
-                                <span style={{ ...styles.actorType, backgroundColor: typeColor }}>
-                                    {actor.type}
-                                </span>
-                                {logicSheet && (
-                                    <span style={styles.metaItem} title={`${logicSheet.nodeCount} logic nodes`}>
-                                        🔗 {logicSheet.nodeCount}
+                            <div style={{ fontSize: '20px' }}>{typeIcon}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontWeight: '700', color: '#f1f5f9', fontSize: '13px' }}>{actor.id}</span>
+                                    <span style={{ fontSize: '9px', fontWeight: '800', padding: '2px 6px', borderRadius: '4px', background: typeColor, color: '#fff', textTransform: 'uppercase' }}>
+                                        {actor.type}
                                     </span>
+                                </div>
+                                {actor.description && (
+                                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {actor.description}
+                                    </div>
                                 )}
                             </div>
+                            {logicSheet && (
+                                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                    🔗 {logicSheet.nodeCount}
+                                </div>
+                            )}
                         </div>
                     );
                 })}
             </div>
+
+            {showAIModal && (
+                <AIGenerateModal
+                    project={{ canvas: { width: 1080, height: 1920, orientation: 'portrait' } }}
+                    scene={{ name: 'Global Actors' }}
+                    onClose={() => setShowAIModal(false)}
+                    onGenerate={(nodes) => {
+                        console.log('Generated AI nodes:', nodes);
+                        setShowAIModal(false);
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -324,9 +361,9 @@ const styles = {
         flex: 1,
         overflow: 'auto',
         padding: '12px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-        gap: '12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
         alignContent: 'start'
     },
     actorCard: {

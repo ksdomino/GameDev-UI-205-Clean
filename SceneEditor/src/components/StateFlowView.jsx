@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 
 /**
- * State Flow View - Visual state machine within a scene
- * Shows states as nodes with transition connections
+ * State Flow View - Visual sub-scene flow machine within a scene
+ * Shows sub-scenes as nodes with transition connections
  */
 export default function StateFlowView({ scene, selectedStateIndex, onSelectState, onUpdateState, vertical = false }) {
   const [nodes, setNodes] = useState([])
@@ -63,7 +63,7 @@ export default function StateFlowView({ scene, selectedStateIndex, onSelectState
   if (!scene?.states || scene.states.length === 0) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-        No states in this scene
+        No sub-scenes in this scene
       </div>
     )
   }
@@ -156,7 +156,7 @@ export default function StateFlowView({ scene, selectedStateIndex, onSelectState
         })}
       </svg>
 
-      {/* State Nodes */}
+      {/* Sub-Scene Nodes */}
       {nodes.map((node, i) => {
         const isSelected = selectedStateIndex === i
         const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e']
@@ -203,7 +203,7 @@ export default function StateFlowView({ scene, selectedStateIndex, onSelectState
               marginTop: '4px',
               color: isSelected ? '#eee' : '#94a3b8'
             }}>
-              {node.state.duration || 2}s • {Object.values(node.state.layers || {}).flat().length} items
+              {node.state.duration || 2}s • {Object.values(node.state.layers || {}).flat().length} actors
             </div>
           </div>
         )

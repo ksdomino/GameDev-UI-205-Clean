@@ -576,7 +576,7 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
               {/* Node body - pointerEvents none so parent gets drag events */}
               <div style={{ padding: '10px 12px', pointerEvents: 'none', userSelect: 'none' }}>
                 <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                  {node.scene.states?.length || 0} states
+                  {node.scene.states?.length || 0} sub-scenes
                 </div>
                 <div style={{ fontSize: '9px', color: '#475569', marginTop: '4px' }}>
                   Double-click to edit

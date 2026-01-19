@@ -9,6 +9,7 @@ import { getGameData, getActor } from '../services/api';
 import ActorList from './ActorList';
 import NodeEditor from './NodeEditor';
 import VariableEditor from './VariableEditor';
+import ActorPreview from './ActorPreview';
 
 export function GameDataPanel({ onSelectActor, initialActorId }) {
     const [gameData, setGameData] = useState(null);
@@ -18,6 +19,7 @@ export function GameDataPanel({ onSelectActor, initialActorId }) {
     const [selectedActorData, setSelectedActorData] = useState(null);
     const [showNodeEditor, setShowNodeEditor] = useState(!!initialActorId);
     const [nodeEditorActorId, setNodeEditorActorId] = useState(initialActorId || null);
+    const [zoom, setZoom] = useState(1);
 
     useEffect(() => {
         loadGameData();
@@ -121,9 +123,9 @@ export function GameDataPanel({ onSelectActor, initialActorId }) {
 
     return (
         <div style={styles.container}>
-            {/* Split View: Actor List + Variable Editor */}
+            {/* 3-Column View: Actor List | Mobile Preview | Variable Editor */}
             <div style={styles.splitView}>
-                {/* Actor List */}
+                {/* Column 1: Wide Actor List */}
                 <div style={styles.actorListContainer}>
                     <ActorList
                         onSelectActor={handleSelectActor}
@@ -132,31 +134,47 @@ export function GameDataPanel({ onSelectActor, initialActorId }) {
                     />
                 </div>
 
-                {/* Variable Editor Panel */}
-                {selectedActorId && (
-                    <div style={styles.variablePanel}>
-                        <div style={styles.variableHeader}>
-                            <h3 style={styles.variableTitle}>📝 {selectedActorId} Variables</h3>
-                            <button
-                                onClick={() => { setSelectedActorId(null); setSelectedActorData(null); }}
-                                style={styles.closeButton}
-                            >×</button>
+                {/* Column 2: Mobile Preview */}
+                <div style={styles.previewContainer}>
+                    <ActorPreview
+                        actor={gameData?.actors?.find(a => a.id === selectedActorId)}
+                        zoom={zoom}
+                        onZoomIn={() => setZoom(z => Math.min(z + 0.1, 2))}
+                        onZoomOut={() => setZoom(z => Math.max(z - 0.1, 0.5))}
+                    />
+                </div>
+
+                {/* Column 3: Variable Editor Panel */}
+                <div style={styles.variablePanel}>
+                    {selectedActorId ? (
+                        <>
+                            <div style={styles.variableHeader}>
+                                <h3 style={styles.variableTitle}>📝 {selectedActorId} Variables</h3>
+                                <button
+                                    onClick={() => { setSelectedActorId(null); setSelectedActorData(null); }}
+                                    style={styles.closeButton}
+                                >×</button>
+                            </div>
+                            <div style={styles.variableContent}>
+                                {selectedActorData?.variables ? (
+                                    <VariableEditor
+                                        variables={selectedActorData.variables}
+                                        onChange={handleVariableChange}
+                                    />
+                                ) : (
+                                    <div style={{ padding: '20px', color: '#64748b', textAlign: 'center' }}>
+                                        No variables defined for this actor.<br />
+                                        <small>Create a .variables.json file</small>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '13px', padding: '20px', textAlign: 'center' }}>
+                            Select an actor to edit its variables
                         </div>
-                        <div style={styles.variableContent}>
-                            {selectedActorData?.variables ? (
-                                <VariableEditor
-                                    variables={selectedActorData.variables}
-                                    onChange={handleVariableChange}
-                                />
-                            ) : (
-                                <div style={{ padding: '20px', color: '#64748b', textAlign: 'center' }}>
-                                    No variables defined for this actor.<br />
-                                    <small>Create a .variables.json file</small>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -217,10 +235,17 @@ const styles = {
         overflow: 'hidden'
     },
     actorListContainer: {
-        flex: 1,
+        width: '320px',
         padding: '12px',
         overflow: 'hidden',
-        minWidth: '280px'
+        borderRight: '1px solid #334155'
+    },
+    previewContainer: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        background: 'rgba(0,0,0,0.2)'
     },
     variablePanel: {
         width: '320px',

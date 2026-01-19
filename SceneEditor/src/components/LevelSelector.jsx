@@ -504,7 +504,7 @@ const styles = {
     deleteBox: {
         width: '24px',
         height: '24px',
-        background: '#ef4444',
+        background: '#475569', // Slate-600 (Greyish)
         borderRadius: '4px',
         display: 'flex',
         alignItems: 'center',

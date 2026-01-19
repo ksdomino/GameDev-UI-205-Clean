@@ -11,9 +11,9 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
   const [debugInfo, setDebugInfo] = useState({
     fps: 0,
     sceneName: '',
-    stateName: '',
+    subSceneName: '',
     layerCounts: {},
-    totalEntities: 0
+    totalActors: 0
   })
   const [logs, setLogs] = useState([])
   const [fpsHistory, setFpsHistory] = useState(Array(30).fill(0))
@@ -68,7 +68,12 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
           break
 
         case 'DEBUG_INFO':
-          setDebugInfo(data)
+          // Adapt engine data to new labels
+          setDebugInfo({
+            ...data,
+            subSceneName: data.stateName,
+            totalActors: data.totalEntities
+          })
           setFpsHistory(prev => [...prev.slice(1), data.fps])
           // Sync running state from engine
           if (data.isRunning !== undefined) {
@@ -165,7 +170,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
 
   // Switch to next state
   const nextState = () => {
-    const currentStateIndex = selectedScene.states.findIndex(s => s.name === debugInfo.stateName)
+    const currentStateIndex = selectedScene.states.findIndex(s => s.name === debugInfo.subSceneName)
     const nextIndex = (currentStateIndex + 1) % selectedScene.states.length
     const nextStateName = selectedScene.states[nextIndex].name
 
@@ -250,8 +255,8 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
               color={isRunning ? getFpsColor(debugInfo.fps) : '#64748b'}
             />
             <StatBox
-              value={debugInfo.totalEntities || 0}
-              label="Entities"
+              value={debugInfo.totalActors || 0}
+              label="Actors"
               color="#f59e0b"
             />
             <StatBox
@@ -284,7 +289,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
         <div style={styles.panel}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
             <span>📍</span>
-            <span style={{ fontSize: '12px', fontWeight: '600' }}>Current State</span>
+            <span style={{ fontSize: '12px', fontWeight: '600' }}>Current Sub-Scene</span>
           </div>
 
           <div style={{
@@ -294,7 +299,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
             marginBottom: '10px'
           }}>
             <div style={{ fontSize: '14px', fontWeight: '600', color: '#a5b4fc' }}>
-              {debugInfo.stateName || 'Not running'}
+              {debugInfo.subSceneName || 'Not running'}
             </div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
               Scene: {debugInfo.sceneName || selectedScene?.name}
@@ -306,7 +311,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
               🔄 Restart
             </button>
             <button onClick={nextState} disabled={!isRunning} style={styles.controlButton}>
-              ⏭️ Next State
+              ⏭️ Next Sub-Scene
             </button>
           </div>
         </div>
@@ -483,9 +488,9 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
           )}
         </div>
 
-        {/* State navigation */}
+        {/* Sub-scene navigation */}
         <div style={{ marginTop: '12px', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '8px' }}>States in Scene</div>
+          <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '8px' }}>Sub-Scenes in Scene</div>
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
             {selectedScene?.states.map((state, i) => (
               <button
@@ -494,14 +499,14 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
                 disabled={!isRunning}
                 style={{
                   padding: '4px 8px',
-                  background: debugInfo.stateName === state.name
+                  background: debugInfo.subSceneName === state.name
                     ? 'rgba(99, 102, 241, 0.5)'
                     : 'rgba(255,255,255,0.05)',
-                  border: debugInfo.stateName === state.name
+                  border: debugInfo.subSceneName === state.name
                     ? '1px solid #6366f1'
                     : '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '4px',
-                  color: debugInfo.stateName === state.name ? '#fff' : '#94a3b8',
+                  color: debugInfo.subSceneName === state.name ? '#fff' : '#94a3b8',
                   fontSize: '9px',
                   cursor: isRunning ? 'pointer' : 'default',
                   opacity: isRunning ? 1 : 0.5
@@ -521,7 +526,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
           textAlign: 'center',
           maxWidth: '320px'
         }}>
-          💡 Click state buttons to jump between states
+          💡 Click sub-scene buttons to jump between sub-scenes
         </div>
       </div>
     </div>

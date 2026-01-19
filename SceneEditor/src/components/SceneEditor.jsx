@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createDefaultState, LAYERS, ENTITY_TYPES, ANIMATION_TYPES, TRANSITION_TYPES } from '../data/defaultProject'
-import EntityPropertyEditor from './EntityPropertyEditor'
+import ActorPropertyEditor from './ActorPropertyEditor'
 import AIGenerateModal from './AIGenerateModal'
 import StateFlowView from './StateFlowView'
 import BehaviorTreeEditor from './BehaviorTreeEditor'
@@ -21,7 +21,10 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
   const [showBehaviorTree, setShowBehaviorTree] = useState(false)
   const [showAnimationCurve, setShowAnimationCurve] = useState(false)
   const [showAssetManager, setShowAssetManager] = useState(false)
+  const [showTransitions, setShowTransitions] = useState(false)
   const [availableAssets, setAvailableAssets] = useState({ images: [], sprites: [], backgrounds: [], audio: [] })
+  const [activeLayerMenu, setActiveLayerMenu] = useState(null)
+  const [hiddenLayers, setHiddenLayers] = useState(new Set(['SYSTEM']))
 
   // Load available assets
   useEffect(() => {
@@ -200,6 +203,17 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
           strokeWidth: 2,
           alpha: 1
         }
+      case 'logic':
+        return {
+          type: 'logic',
+          id: generateEntityId('logic', layerName),
+          x: centerX,
+          y: centerY,
+          width: 64,
+          height: 64,
+          visible: true,
+          alpha: 1
+        }
       default:
         return null
     }
@@ -229,8 +243,8 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
   const totalDuration = scene.states.reduce((sum, state) => sum + (state.duration || 2), 0)
   const timelineWidth = Math.max(totalDuration * 100, 800)
 
-  // Calculate entity counts
-  const totalEntities = Object.values(selectedState?.layers || {}).reduce((sum, arr) => sum + arr.length, 0)
+  // Calculate actor counts
+  const totalActors = Object.values(selectedState?.layers || {}).reduce((sum, arr) => sum + arr.length, 0)
 
   return (
     <div style={{
@@ -252,18 +266,15 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button onClick={onBack} style={styles.backButton}>←</button>
-          <h1 style={{ fontSize: '14px', fontWeight: '600', margin: 0 }}>🎬 {scene.name}</h1>
-          <span style={{ fontSize: '10px', color: '#64748b' }}>
-            {scene.states.length} states • {totalEntities} entities
-          </span>
+          <h1 style={{ fontSize: '14px', fontWeight: '800', margin: 0 }}>Scene Editor - 🎬 {scene.name}</h1>
         </div>
 
         <div style={{ display: 'flex', gap: '6px' }}>
-          <button onClick={() => setShowAssetManager(true)} style={styles.toolButton}>📦 Assets</button>
+          <button onClick={() => setShowTransitions(true)} style={styles.toolButton}>🔀 Transitions</button>
           <button onClick={() => setShowBehaviorTree(true)} style={styles.toolButton}>🌳 Logic</button>
-          <button onClick={() => setShowAnimationCurve(true)} style={styles.toolButton}>📈 Curves</button>
+          <button onClick={() => setShowAnimationCurve(true)} style={styles.toolButton}>🎞️ Animation</button>
           <button onClick={() => setShowAIModal(true)} style={styles.generateButton}>✨ AI Generate</button>
-          <button onClick={onOpenDebug} style={styles.testButton}>🐛 Test</button>
+          <button onClick={onOpenDebug} style={styles.testButton}>🐛 Test & Debug</button>
         </div>
       </header>
 
@@ -280,7 +291,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
         {/* Column 1: States (Flow & Settings) */}
         <div style={{ ...styles.panel, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={styles.panelHeader}>🔀 States</h3>
+            <h3 style={styles.panelHeader}>🔀 Sub-Scenes</h3>
             <button onClick={addState} style={{ ...styles.addStateButton, padding: '2px 8px' }}>+ New</button>
           </div>
 
@@ -359,7 +370,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
 
                 {scene.states.length > 1 && (
                   <button onClick={() => deleteState(selectedStateIndex)} style={{ ...styles.deleteButton, marginTop: '4px', fontSize: '10px', padding: '6px' }}>
-                    🗑️ Delete State
+                    🗑️ Delete Sub-Scene
                   </button>
                 )}
               </div>
@@ -387,13 +398,14 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
               }
             }}
             availableAssets={availableAssets}
+            hiddenLayers={hiddenLayers}
           />
         </div>
 
         {/* Column 3: Layers (Drop Targets) */}
-        <div style={styles.panel}>
+        <div style={{ ...styles.panel, position: 'relative' }}>
           <h3 style={styles.panelHeader}>🎬 Layers</h3>
-          <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 10px 0' }}>Drop entities here</p>
+          <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 10px 0' }}>Manage actors by layer</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {LAYERS.slice().reverse().map(layer => {
@@ -401,7 +413,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
               const isDragOver = dragOverLayer === layer.name && draggedEntityType
 
               return (
-                <div key={layer.name}>
+                <div key={layer.name} style={{ position: 'relative' }}>
                   <div
                     onDragOver={(e) => { e.preventDefault(); setDragOverLayer(layer.name) }}
                     onDragLeave={() => setDragOverLayer(null)}
@@ -411,49 +423,106 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
                       background: isDragOver ? 'rgba(99, 102, 241, 0.3)' : entities.length > 0 ? 'rgba(99, 102, 241, 0.1)' : 'rgba(0,0,0,0.2)',
                       border: isDragOver ? '2px dashed #6366f1' : '1px solid rgba(255,255,255,0.05)',
                       borderRadius: '6px',
-                      transition: 'all 0.15s'
+                      transition: 'all 0.15s',
+                      opacity: hiddenLayers.has(layer.name) ? 0.5 : 1
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newHidden = new Set(hiddenLayers);
+                            if (newHidden.has(layer.name)) newHidden.delete(layer.name);
+                            else newHidden.add(layer.name);
+                            setHiddenLayers(newHidden);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            padding: 0,
+                            opacity: hiddenLayers.has(layer.name) ? 0.4 : 1
+                          }}
+                        >
+                          {hiddenLayers.has(layer.name) ? '❌' : '👁️'}
+                        </button>
                         <span style={{ fontSize: '12px' }}>{layer.icon}</span>
                         <span style={{ fontSize: '10px', fontWeight: '600', color: '#cbd5e1' }}>{layer.label}</span>
                       </div>
 
-                      {/* Add Entity Menu */}
+                      {/* Add Actor Button */}
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        {ENTITY_TYPES.map(type => (
-                          <button
-                            key={type.type}
-                            onClick={() => {
-                              const newEntity = createDefaultEntity(type.type, layer.name)
-                              const newLayers = { ...selectedState.layers }
-                              newLayers[layer.name] = [...(newLayers[layer.name] || []), newEntity]
-                              updateState(selectedStateIndex, { layers: newLayers })
-                              const newIndex = newLayers[layer.name].length - 1
-                              setSelectedEntityKey(`${layer.name}:${newIndex}`)
-                            }}
-                            title={`Add ${type.label}`}
-                            style={{
-                              background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                              borderRadius: '4px',
-                              padding: '2px 4px',
-                              fontSize: '10px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            {type.icon}
-                          </button>
-                        ))}
+                        <button
+                          onClick={() => setActiveLayerMenu(activeLayerMenu === layer.name ? null : layer.name)}
+                          style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '4px',
+                            padding: '2px 8px',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff'
+                          }}
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Entity list for this layer */}
+                  {/* Dropdown Menu */}
+                  {activeLayerMenu === layer.name && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '32px',
+                      right: '0',
+                      background: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '6px',
+                      padding: '4px',
+                      zIndex: 100,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                      minWidth: '120px'
+                    }}>
+                      {ENTITY_TYPES.map(type => (
+                        <button
+                          key={type.type}
+                          onClick={() => {
+                            const newEntity = createDefaultEntity(type.type, layer.name)
+                            const newLayers = { ...selectedState.layers }
+                            newLayers[layer.name] = [...(newLayers[layer.name] || []), newEntity]
+                            updateState(selectedStateIndex, { layers: newLayers })
+                            const newIndex = newLayers[layer.name].length - 1
+                            setSelectedEntityKey(`${layer.name}:${newIndex}`)
+                            setActiveLayerMenu(null)
+                          }}
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            textAlign: 'left',
+                            background: 'none',
+                            border: 'none',
+                            padding: '6px 10px',
+                            color: '#cbd5e1',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            borderRadius: '4px'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                          onMouseLeave={(e) => e.target.style.background = 'none'}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Actor list for this layer */}
                   {entities.length > 0 && (
                     <div style={{ marginLeft: '16px', marginTop: '4px' }}>
                       {entities.map((entity, i) => {
@@ -488,11 +557,11 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
           </div>
         </div>
 
-        {/* Column 4: Entity Properties */}
+        {/* Column 4: Actor Properties */}
         <div style={styles.panel}>
-          <h3 style={styles.panelHeader}>🎯 Properties</h3>
+          <h3 style={styles.panelHeader}>🎯 Actor Properties</h3>
           {selectedEntity ? (
-            <EntityPropertyEditor
+            <ActorPropertyEditor
               entity={selectedEntity}
               onChange={updateSelectedEntity}
               onDelete={deleteSelectedEntity}
@@ -502,11 +571,12 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
               availableAssets={availableAssets}
               onOpenAssetManager={() => setShowAssetManager(true)}
               onOpenLogic={onOpenLogic}
+              onOpenAnimation={() => setShowAnimationCurve(true)}
             />
           ) : (
             <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3 }}>👆</div>
-              <p>Select an entity from the layers or canvas to edit its properties</p>
+              <p>Select an actor from the layers or canvas to edit its properties</p>
             </div>
           )}
         </div>
@@ -541,6 +611,16 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
           tree={scene.behaviorTree}
           onChange={(tree) => updateScene({ behaviorTree: tree })}
           onClose={() => setShowBehaviorTree(false)}
+        />
+      )}
+
+      {/* Transitions Modal */}
+      {showTransitions && (
+        <TransitionsModal
+          scene={scene}
+          project={project}
+          onUpdate={(updates) => updateScene(updates)}
+          onClose={() => setShowTransitions(false)}
         />
       )}
 
@@ -639,10 +719,16 @@ function Field({ label, children, style = {} }) {
  * Canvas Preview Component - Shows visual representation of entities with actual images
  * Supports click-drag to move entities
  */
-function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUpdateEntity, availableAssets }) {
+function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUpdateEntity, availableAssets, hiddenLayers }) {
   const containerRef = useRef(null)
   const [loadedImages, setLoadedImages] = useState({})
   const [dragging, setDragging] = useState(null) // { key, startX, startY, entityStartX, entityStartY }
+
+  // Invisible Logic Actors Icons
+  const LOGIC_ICONS = {
+    'SYSTEM': '⚙️',
+    'default': '🚩'
+  }
 
   // Load images for sprites
   useEffect(() => {
@@ -738,9 +824,10 @@ function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUp
   const previewWidth = canvasConfig.width * scale
   const previewHeight = canvasConfig.height * scale
 
-  // Gather all entities from all layers
+  // Gather all entities from all non-hidden layers
   const allEntities = []
   LAYERS.forEach(layer => {
+    if (hiddenLayers && hiddenLayers.has(layer.name)) return;
     const entities = state.layers?.[layer.name] || []
     entities.forEach((entity, index) => {
       allEntities.push({ ...entity, _layer: layer.name, _index: index })
@@ -813,23 +900,31 @@ function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUp
                   ? entity.color || '#6366f1'
                   : entity.type === 'button'
                     ? entity.color || '#6366f1'
-                    : hasImage ? 'transparent' : 'rgba(99, 102, 241, 0.3)',
-                border: isSelected ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                    : hasImage ? 'transparent' : 'rgba(99, 102, 241, 0.1)',
+                border: isSelected ? '2px solid #fff' : (hasImage ? 'none' : '1px solid rgba(255,255,255,0.2)'),
                 borderRadius: entity.shape === 'circle' ? '50%' : '4px',
                 cursor: dragging?.key === key ? 'grabbing' : 'grab',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '8px',
+                fontSize: '12px',
                 color: '#fff',
                 textAlign: 'center',
                 overflow: (entity.type === 'text' || entity.type === 'button') ? 'visible' : 'hidden',
                 boxShadow: isSelected ? '0 0 10px rgba(99, 102, 241, 0.5)' : 'none',
                 userSelect: 'none',
                 minWidth: (entity.type === 'text' || entity.type === 'button') ? 'max-content' : undefined,
-                whiteSpace: (entity.type === 'text' || entity.type === 'button') ? 'nowrap' : 'normal'
+                whiteSpace: (entity.type === 'text' || entity.type === 'button') ? 'nowrap' : 'normal',
+                opacity: entity.alpha ?? 1,
+                zIndex: isSelected ? 100 : i
               }}
             >
+              {/* Invisible Actor Icon */}
+              {entity.type !== 'text' && entity.type !== 'button' && !hasImage && (
+                <span style={{ fontSize: '20px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                  {LOGIC_ICONS[entity._layer] || LOGIC_ICONS.default}
+                </span>
+              )}
               {/* Render sprite image if available */}
               {entity.type === 'sprite' && asset && (
                 <>
@@ -978,4 +1073,159 @@ const styles = {
     fontSize: '11px',
     cursor: 'pointer'
   }
+}
+
+/**
+ * Transitions Modal - Configure scene-to-scene transitions
+ */
+function TransitionsModal({ scene, project, onUpdate, onClose }) {
+  const [transitions, setTransitions] = useState(scene.transitions || [])
+
+  const addTransition = () => {
+    const newTransition = {
+      id: Date.now(),
+      trigger: 'button_click',
+      targetScene: '',
+      animation: 'crossfade'
+    }
+    const updated = [...transitions, newTransition]
+    setTransitions(updated)
+    onUpdate({ transitions: updated })
+  }
+
+  const updateTransition = (index, updates) => {
+    const updated = [...transitions]
+    updated[index] = { ...updated[index], ...updates }
+    setTransitions(updated)
+    onUpdate({ transitions: updated })
+  }
+
+  const removeTransition = (index) => {
+    const updated = transitions.filter((_, i) => i !== index)
+    setTransitions(updated)
+    onUpdate({ transitions: updated })
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.8)',
+      backdropFilter: 'blur(8px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2000
+    }}>
+      <div style={{
+        width: '500px',
+        background: '#1e1e2f',
+        borderRadius: '16px',
+        border: '1px solid rgba(255,255,255,0.1)',
+        padding: '24px',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#fff' }}>🔀 Scene Transitions</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '20px' }}>×</button>
+        </div>
+
+        <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '20px' }}>
+          Define how this scene flows into others. These logical links guide the player's journey.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '10px' }}>
+          {transitions.map((t, i) => (
+            <div key={i} style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '10px',
+              padding: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>TRIGGER</label>
+                  <select
+                    value={t.trigger}
+                    onChange={(e) => updateTransition(i, { trigger: e.target.value })}
+                    style={{ width: '100%', background: '#000', color: '#fff', border: '1px solid #333', padding: '6px', borderRadius: '4px', fontSize: '12px' }}
+                  >
+                    <option value="button_click">On Button Click</option>
+                    <option value="scene_end">On Scene End (Timer)</option>
+                    <option value="condition">On Custom Condition</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>TARGET SCENE</label>
+                  <select
+                    value={t.targetScene}
+                    onChange={(e) => updateTransition(i, { targetScene: e.target.value })}
+                    style={{ width: '100%', background: '#000', color: '#fff', border: '1px solid #333', padding: '6px', borderRadius: '4px', fontSize: '12px' }}
+                  >
+                    <option value="">Select Scene...</option>
+                    {project.scenes.map(s => (
+                      <option key={s.name} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => removeTransition(i)}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer' }}
+                >
+                  Delete Transition
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {transitions.length === 0 && (
+            <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px dashed #333' }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🛤️</div>
+              <div style={{ color: '#64748b', fontSize: '13px' }}>No transitions defined yet.</div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+          <button
+            onClick={addTransition}
+            style={{
+              flex: 1,
+              padding: '12px',
+              background: 'rgba(99, 102, 241, 0.1)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '8px',
+              color: '#a5b4fc',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            + Add New Transition
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: '12px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }

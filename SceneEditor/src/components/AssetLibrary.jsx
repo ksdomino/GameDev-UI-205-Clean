@@ -148,9 +148,6 @@ export default function AssetLibrary({
                     )}
                     <div>
                         <h1 style={styles.title}>📦 Asset Library</h1>
-                        <p style={styles.subtitle}>
-                            {assets.images.length} images • {assets.audio.length} sounds
-                        </p>
                     </div>
                 </div>
 
