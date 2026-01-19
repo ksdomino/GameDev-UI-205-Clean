@@ -5,8 +5,6 @@ import { LogicExtractor } from './core/LogicExtractor.js';
 import { NodeExecutor } from './core/NodeExecutor.js';
 
 // Custom game scenes
-import { PongScene } from './scenes/PongScene.js';
-import { PongTitleScene } from './scenes/PongTitleScene.js';
 
 // Global instances for logic system
 let logicExtractor = null;
@@ -634,8 +632,7 @@ async function tryLoadGameManifest(engine) {
 async function loadCustomScenes(engine, manifest) {
   // Map of scene names to their class constructors
   const customSceneMap = {
-    'Title_Scene_1': PongTitleScene,
-    'L1_Scene_1': PongScene
+    // 'SceneName': SceneClass
   };
 
   // Register all scenes from manifest
