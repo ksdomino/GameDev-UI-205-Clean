@@ -1,8 +1,16 @@
 # TODO.md
 
 ## Next Task
+- [ ] Comprehensive UI Verification (Sub-Scene transitions & AI flows)
 - [ ] Verify Toggle Light Test (OnClick logic execution)
 - [ ] Action Library (save/load reusable Actions)
+
+## Terminology & AI Upgrade ✅ PLATINUM TIER
+1. [x] Global "State" → "Sub-Scene" Refactor ✅
+2. [x] Multi-Provider AI (Claude, Gemini, OpenAI) ✅
+3. [x] Logic Actor Property Editor ✅
+4. [x] JSON Data Migration Script ✅
+5. [x] Expanded Actor Preset Library ✅
 
 ## Visual Scripting Upgrade ✅ DIAMOND TIER
 1. [x] Wire coloring by data type ✅

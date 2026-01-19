@@ -1,5 +1,46 @@
 # PROGRESS.md
 
+## 2026-01-19 - Session 6: State to Sub-Scene Refactor & AI Providers
+
+### Completed
+1. **Global Terminology Refactor** ("State" → "Sub-Scene"):
+   - Renamed `states` array to `subScenes` across JSON, UI, and Server logic.
+   - Updated `ConfigurableScene.js` in the Engine with backward compatibility.
+   - Refactored `SceneEditor`, `Dashboard`, `LevelSelector`, and `DebugPanel` UI.
+   - Renamed `StateFlowView.jsx` to `SubSceneFlowView.jsx`.
+
+2. **Multi-Provider AI Integration**:
+   - Implemented Claude, Gemini, and OpenAI support in `AIGenerateModal.jsx`.
+   - Added provider selection and local storage key management.
+
+3. **Expanded Preset Library**:
+   - Added Boss Enemy, Health Pickup, Speed Boost, and Gold Coin presets to `GameDataHub.jsx`.
+
+4. **Logic Actor Support**:
+   - Added specialized property editor for "Logic" actors in `ActorPropertyEditor.jsx`.
+
+5. **Data Migration**:
+   - Successfully refactored all project and scene JSON files to use the new `subScenes` structure.
+
+### Files Modified
+- SceneEditor/src/components/AIGenerateModal.jsx
+- SceneEditor/src/components/GameDataHub.jsx
+- SceneEditor/src/components/ActorPropertyEditor.jsx
+- SceneEditor/src/components/SceneEditor.jsx
+- SceneEditor/src/components/Dashboard.jsx
+- SceneEditor/src/components/LevelSelector.jsx
+- SceneEditor/src/components/DebugPanel.jsx
+- SceneEditor/src/components/SubSceneFlowView.jsx (RENAMED)
+- SceneEditor/server.js
+- SceneEditor/src/services/api.js
+- Engine/src/js/scenes/ConfigurableScene.js
+- Engine/src/js/main.js
+- (All JSON projects and scenes refactored via script)
+
+### Next Step
+Comprehensive UI testing to verify sub-scene transitions and AI generation flow across all providers.
+
+
 ## 2026-01-18 - Session 5: Engine Logic Runtime & Click Events
 
 ### Completed
