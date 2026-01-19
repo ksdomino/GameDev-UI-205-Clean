@@ -4,47 +4,47 @@ import { useState, useEffect, useMemo } from 'react'
  * State Flow View - Visual sub-scene flow machine within a scene
  * Shows sub-scenes as nodes with transition connections
  */
-export default function StateFlowView({ scene, selectedStateIndex, onSelectState, onUpdateState, vertical = false }) {
+export default function SubSceneFlowView({ scene, selectedSubSceneIndex, onSelectSubScene, onUpdateSubScene, vertical = false }) {
   const [nodes, setNodes] = useState([])
 
   // Calculate node positions
   useEffect(() => {
-    if (!scene?.states) return
+    if (!scene?.subScenes) return
 
-    const newNodes = scene.states.map((state, i) => ({
-      id: state.name,
-      state,
+    const newNodes = scene.subScenes.map((subScene, i) => ({
+      id: subScene.name,
+      subScene,
       index: i,
       x: vertical ? 20 : (40 + i * 140),
       y: vertical ? (40 + i * 80) : 10
     }))
     setNodes(newNodes)
-  }, [scene?.states, vertical])
+  }, [scene?.subScenes, vertical])
 
-  // Build connections from state transitions
+  // Build connections from sub-scene transitions
   const connections = useMemo(() => {
-    if (!scene?.states) return []
+    if (!scene?.subScenes) return []
 
     const conns = []
-    scene.states.forEach((state, fromIndex) => {
-      // Check transition.nextState
-      if (state.transition?.nextState) {
-        const toIndex = scene.states.findIndex(s => s.name === state.transition.nextState)
+    scene.subScenes.forEach((subScene, fromIndex) => {
+      // Check transition.nextSubScene
+      if (subScene.transition?.nextSubScene) {
+        const toIndex = scene.subScenes.findIndex(s => s.name === subScene.transition.nextSubScene)
         if (toIndex !== -1) {
           conns.push({
             from: fromIndex,
             to: toIndex,
-            type: state.transition.type,
-            duration: state.transition.duration
+            type: subScene.transition.type,
+            duration: subScene.transition.duration
           })
         }
       }
 
-      // Check button onClick for switchState
-      if (state.layers) {
-        Object.values(state.layers).flat().forEach(entity => {
-          if (entity.onClick?.action === 'switchState' && entity.onClick?.target) {
-            const toIndex = scene.states.findIndex(s => s.name === entity.onClick.target)
+      // Check button onClick for switchSubScene
+      if (subScene.layers) {
+        Object.values(subScene.layers).flat().forEach(entity => {
+          if (entity.onClick?.action === 'switchSubScene' && entity.onClick?.target) {
+            const toIndex = scene.subScenes.findIndex(s => s.name === entity.onClick.target)
             if (toIndex !== -1) {
               conns.push({
                 from: fromIndex,
@@ -58,9 +58,9 @@ export default function StateFlowView({ scene, selectedStateIndex, onSelectState
       }
     })
     return conns
-  }, [scene?.states])
+  }, [scene?.subScenes])
 
-  if (!scene?.states || scene.states.length === 0) {
+  if (!scene?.subScenes || scene.subScenes.length === 0) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
         No sub-scenes in this scene
@@ -158,14 +158,14 @@ export default function StateFlowView({ scene, selectedStateIndex, onSelectState
 
       {/* Sub-Scene Nodes */}
       {nodes.map((node, i) => {
-        const isSelected = selectedStateIndex === i
+        const isSelected = selectedSubSceneIndex === i
         const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e']
         const color = colors[i % colors.length]
 
         return (
           <div
             key={node.id}
-            onClick={() => onSelectState(i)}
+            onClick={() => onSelectSubScene(i)}
             style={{
               position: 'absolute',
               left: node.x,
@@ -203,7 +203,7 @@ export default function StateFlowView({ scene, selectedStateIndex, onSelectState
               marginTop: '4px',
               color: isSelected ? '#eee' : '#94a3b8'
             }}>
-              {node.state.duration || 2}s • {Object.values(node.state.layers || {}).flat().length} actors
+              {node.subScene.duration || 2}s • {Object.values(node.subScene.layers || {}).flat().length} actors
             </div>
           </div>
         )

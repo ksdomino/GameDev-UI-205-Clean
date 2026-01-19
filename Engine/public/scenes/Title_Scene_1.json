@@ -10,7 +10,7 @@
     "audio": [],
     "videos": []
   },
-  "states": [
+  "subScenes": [
     {
       "name": "MAIN",
       "duration": 0,

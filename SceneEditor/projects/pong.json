@@ -2,7 +2,7 @@
   "name": "Pong",
   "version": "1.0.0",
   "createdAt": "2026-01-17T00:00:00Z",
-  "updatedAt": "2026-01-19T09:54:18.021Z",
+  "updatedAt": "2026-01-19T11:13:30.508Z",
   "canvas": {
     "width": 1080,
     "height": 1920,
@@ -34,7 +34,23 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "behaviorTree": {
+        "nodes": []
+      },
+      "animationCurve": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "subScenes": [
         {
           "name": "PLAYING",
           "duration": 0,
@@ -283,23 +299,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": [],
-      "behaviorTree": {
-        "nodes": []
-      },
-      "animationCurve": {
-        "points": [
-          [
-            0,
-            0
-          ],
-          [
-            1,
-            1
-          ]
-        ]
-      }
+      ]
     },
     {
       "name": "Title_Scene_2",
@@ -309,7 +309,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -394,6 +395,20 @@
                 "scaleX": 1,
                 "scaleY": 1,
                 "visible": true
+              },
+              {
+                "type": "sprite",
+                "id": "sprite_5",
+                "assetId": "",
+                "x": 540,
+                "y": 960,
+                "width": 200,
+                "height": 200,
+                "rotation": 0,
+                "alpha": 1,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
               }
             ]
           },
@@ -420,8 +435,7 @@
             "nextState": null
           }
         }
-      ],
-      "transitions": []
+      ]
     },
     {
       "name": "Title_Scene_3",
@@ -431,7 +445,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -449,8 +464,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": []
+      ]
     },
     {
       "name": "Title_Scene_4",
@@ -460,7 +474,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -478,8 +493,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": []
+      ]
     },
     {
       "name": "L1_Scene_2",
@@ -489,7 +503,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -507,8 +522,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": []
+      ]
     },
     {
       "name": "Title_Scene_1",
@@ -518,7 +532,23 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "behaviorTree": {
+        "nodes": []
+      },
+      "animationCurve": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": 0,
@@ -623,23 +653,7 @@
             "nextScene": "L1_Scene_1"
           }
         }
-      ],
-      "transitions": [],
-      "behaviorTree": {
-        "nodes": []
-      },
-      "animationCurve": {
-        "points": [
-          [
-            0,
-            0
-          ],
-          [
-            1,
-            1
-          ]
-        ]
-      }
+      ]
     },
     {
       "name": "Title_Scene_5",
@@ -649,7 +663,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -697,8 +712,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": []
+      ]
     },
     {
       "name": "Title_Scene_6",
@@ -708,7 +722,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -741,8 +756,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": []
+      ]
     }
   ],
   "assets": {

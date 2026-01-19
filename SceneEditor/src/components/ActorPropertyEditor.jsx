@@ -11,7 +11,7 @@ export default function ActorPropertyEditor({
   onDelete,
   project,
   scenes,
-  states,
+  subScenes,
   availableAssets = { images: [], sprites: [], backgrounds: [], audio: [] },
   onOpenAssetManager,
   onOpenLogic,
@@ -285,14 +285,14 @@ export default function ActorPropertyEditor({
             </Field>
           )}
           {entity.onClick?.action === 'switchState' && (
-            <Field label="Target State">
+            <Field label="Target Sub-Scene">
               <select
                 value={entity.onClick?.target || ''}
                 onChange={(e) => handleNestedChange('onClick', 'target', e.target.value)}
                 style={styles.input}
               >
-                <option value="">Select state...</option>
-                {states.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                <option value="">Select sub-scene...</option>
+                {subScenes.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
               </select>
             </Field>
           )}
@@ -402,6 +402,34 @@ export default function ActorPropertyEditor({
             </Field>
           )}
         </>
+      )}
+
+      {entity.type === 'logic' && (
+        <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(99, 102, 241, 0.2)', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '24px' }}>⚙️</span>
+            <div>
+              <div style={{ fontWeight: 'bold', color: '#a5b4fc' }}>Logic Controller</div>
+              <div style={{ fontSize: '10px', color: '#64748b' }}>Invisible engine controller</div>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenLogic(entity.id)}
+            style={{
+              width: '100%',
+              padding: '10px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+            }}
+          >
+            🧠 Open Logic Editor
+          </button>
+        </div>
       )}
 
       {/* Common: Alpha */}

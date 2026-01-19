@@ -3,7 +3,7 @@
   "description": "A new mobile game",
   "version": "0.1.0",
   "createdAt": "2026-01-18T22:26:04.935Z",
-  "updatedAt": "2026-01-18T23:20:49.551Z",
+  "updatedAt": "2026-01-19T11:10:19.502Z",
   "canvas": {
     "width": 1080,
     "height": 1920,
@@ -39,7 +39,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -57,8 +58,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": []
+      ]
     },
     {
       "name": "L1_Scene_1",
@@ -68,7 +68,8 @@
         "images": [],
         "audio": []
       },
-      "states": [
+      "transitions": [],
+      "subScenes": [
         {
           "name": "MAIN",
           "duration": null,
@@ -86,8 +87,7 @@
             "type": "none"
           }
         }
-      ],
-      "transitions": []
+      ]
     }
   ],
   "assets": {

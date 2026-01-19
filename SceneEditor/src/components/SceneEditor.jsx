@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { createDefaultState, LAYERS, ENTITY_TYPES, ANIMATION_TYPES, TRANSITION_TYPES } from '../data/defaultProject'
+import { createDefaultSubScene, LAYERS, ENTITY_TYPES, ANIMATION_TYPES, TRANSITION_TYPES } from '../data/defaultProject'
 import ActorPropertyEditor from './ActorPropertyEditor'
 import AIGenerateModal from './AIGenerateModal'
-import StateFlowView from './StateFlowView'
+import SubSceneFlowView from './SubSceneFlowView'
 import BehaviorTreeEditor from './BehaviorTreeEditor'
 import AnimationCurveEditor from './AnimationCurveEditor'
 import AssetManager from './AssetManager'
@@ -13,7 +13,7 @@ import { listAssets } from '../services/api'
  */
 export default function SceneEditor({ project, updateProject, sceneIndex, onBack, onOpenDebug, onOpenLogic }) {
   const scene = project.scenes[sceneIndex]
-  const [selectedStateIndex, setSelectedStateIndex] = useState(0)
+  const [selectedSubSceneIndex, setSelectedSubSceneIndex] = useState(0)
   const [selectedEntityKey, setSelectedEntityKey] = useState(null) // "LAYER_NAME:index"
   const [draggedEntityType, setDraggedEntityType] = useState(null)
   const [dragOverLayer, setDragOverLayer] = useState(null)
@@ -46,14 +46,14 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
     return <div>Scene not found</div>
   }
 
-  const selectedState = scene.states[selectedStateIndex]
+  const selectedSubScene = scene.subScenes[selectedSubSceneIndex]
 
-  // Parse selected entity
+  // Parse selected actor
   const getSelectedEntity = () => {
-    if (!selectedEntityKey || !selectedState) return null
+    if (!selectedEntityKey || !selectedSubScene) return null
     const [layerName, indexStr] = selectedEntityKey.split(':')
     const index = parseInt(indexStr)
-    return selectedState.layers?.[layerName]?.[index] || null
+    return selectedSubScene.layers?.[layerName]?.[index] || null
   }
 
   const selectedEntity = getSelectedEntity()
@@ -65,11 +65,11 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
     updateProject({ scenes: newScenes })
   }
 
-  // Update state helper
-  const updateState = (stateIndex, updates) => {
-    const newStates = [...scene.states]
-    newStates[stateIndex] = { ...newStates[stateIndex], ...updates }
-    updateScene({ states: newStates })
+  // Update sub-scene helper
+  const updateSubScene = (subSceneIndex, updates) => {
+    const newSubScenes = [...scene.subScenes]
+    newSubScenes[subSceneIndex] = { ...newSubScenes[subSceneIndex], ...updates }
+    updateScene({ subScenes: newSubScenes })
   }
 
   // Update selected entity
@@ -78,12 +78,12 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
     const [layerName, indexStr] = selectedEntityKey.split(':')
     const index = parseInt(indexStr)
 
-    const newLayers = { ...selectedState.layers }
+    const newLayers = { ...selectedSubScene.layers }
     const newLayerEntities = [...(newLayers[layerName] || [])]
     newLayerEntities[index] = { ...newLayerEntities[index], ...updates }
     newLayers[layerName] = newLayerEntities
 
-    updateState(selectedStateIndex, { layers: newLayers })
+    updateSubScene(selectedSubSceneIndex, { layers: newLayers })
   }
 
   // Delete selected entity
@@ -92,41 +92,41 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
     const [layerName, indexStr] = selectedEntityKey.split(':')
     const index = parseInt(indexStr)
 
-    const newLayers = { ...selectedState.layers }
+    const newLayers = { ...selectedSubScene.layers }
     newLayers[layerName] = newLayers[layerName].filter((_, i) => i !== index)
 
-    updateState(selectedStateIndex, { layers: newLayers })
+    updateSubScene(selectedSubSceneIndex, { layers: newLayers })
     setSelectedEntityKey(null)
   }
 
-  // Add new state
-  const addState = () => {
-    const stateName = `STATE_${scene.states.length + 1}`
-    const newState = createDefaultState(stateName)
-    updateScene({ states: [...scene.states, newState] })
-    setSelectedStateIndex(scene.states.length)
+  // Add new sub-scene
+  const addSubScene = () => {
+    const subSceneName = `SUB_SCENE_${scene.subScenes.length + 1}`
+    const newSubScene = createDefaultSubScene(subSceneName)
+    updateScene({ subScenes: [...scene.subScenes, newSubScene] })
+    setSelectedSubSceneIndex(scene.subScenes.length)
   }
 
-  // Delete state
-  const deleteState = (index) => {
-    if (scene.states.length <= 1) {
-      alert('You need at least one state!')
+  // Delete sub-scene
+  const deleteSubScene = (index) => {
+    if (scene.subScenes.length <= 1) {
+      alert('You need at least one sub-scene!')
       return
     }
-    const newStates = scene.states.filter((_, i) => i !== index)
-    updateScene({ states: newStates })
-    if (selectedStateIndex >= newStates.length) {
-      setSelectedStateIndex(newStates.length - 1)
+    const newSubScenes = scene.subScenes.filter((_, i) => i !== index)
+    updateScene({ subScenes: newSubScenes })
+    if (selectedSubSceneIndex >= newSubScenes.length) {
+      setSelectedSubSceneIndex(newSubScenes.length - 1)
     }
   }
 
   // Generate a short, readable ID for entities
   const generateEntityId = (type, layerName) => {
-    // Count existing entities of this type across all states
+    // Count existing actors of this type across all sub-scenes
     let count = 0
-    scene.states.forEach(state => {
+    scene.subScenes.forEach(subScene => {
       LAYERS.forEach(layer => {
-        const entities = state.layers?.[layer.name] || []
+        const entities = subScene.layers?.[layer.name] || []
         entities.forEach(entity => {
           if (entity.type === type) count++
         })
@@ -226,10 +226,10 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
     const newEntity = createDefaultEntity(draggedEntityType, layerName)
     if (!newEntity) return
 
-    const newLayers = { ...selectedState.layers }
+    const newLayers = { ...selectedSubScene.layers }
     newLayers[layerName] = [...(newLayers[layerName] || []), newEntity]
 
-    updateState(selectedStateIndex, { layers: newLayers })
+    updateSubScene(selectedSubSceneIndex, { layers: newLayers })
 
     // Select the new entity
     const newIndex = newLayers[layerName].length - 1
@@ -240,11 +240,11 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
   }
 
   // Calculate total timeline duration
-  const totalDuration = scene.states.reduce((sum, state) => sum + (state.duration || 2), 0)
+  const totalDuration = scene.subScenes.reduce((sum, subScene) => sum + (subScene.duration || 2), 0)
   const timelineWidth = Math.max(totalDuration * 100, 800)
 
   // Calculate actor counts
-  const totalActors = Object.values(selectedState?.layers || {}).reduce((sum, arr) => sum + arr.length, 0)
+  const totalActors = Object.values(selectedSubScene?.layers || {}).reduce((sum, arr) => sum + arr.length, 0)
 
   return (
     <div style={{
@@ -255,7 +255,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      {/* Header - Simplified as States moved to sidebar */}
+      {/* Header - Simplified as Sub-Scenes moved to sidebar */}
       <header style={{
         padding: '6px 16px',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -288,33 +288,33 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
         overflow: 'hidden',
         minHeight: 0
       }}>
-        {/* Column 1: States (Flow & Settings) */}
+        {/* Column 1: Sub-Scenes (Flow & Settings) */}
         <div style={{ ...styles.panel, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={styles.panelHeader}>🔀 Sub-Scenes</h3>
-            <button onClick={addState} style={{ ...styles.addStateButton, padding: '2px 8px' }}>+ New</button>
+            <button onClick={addSubScene} style={{ ...styles.addStateButton, padding: '2px 8px' }}>+ New</button>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', marginTop: '8px', paddingRight: '4px' }}>
-            <StateFlowView
+            <SubSceneFlowView
               scene={scene}
-              selectedStateIndex={selectedStateIndex}
-              onSelectState={(i) => { setSelectedStateIndex(i); setSelectedEntityKey(null) }}
-              onUpdateState={updateState}
+              selectedSubSceneIndex={selectedSubSceneIndex}
+              onSelectSubScene={(i) => { setSelectedSubSceneIndex(i); setSelectedEntityKey(null) }}
+              onUpdateSubScene={updateSubScene}
               vertical={true}
             />
           </div>
 
-          {/* State Settings */}
-          {selectedState && (
+          {/* Sub-Scene Settings */}
+          {selectedSubScene && (
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px', marginTop: '10px' }}>
               <h3 style={{ ...styles.panelHeader, border: 'none', padding: 0, marginBottom: '8px' }}>⚙️ Settings</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <Field label="Name">
                   <input
                     type="text"
-                    value={selectedState.name}
-                    onChange={(e) => updateState(selectedStateIndex, { name: e.target.value.toUpperCase().replace(/\s+/g, '_') })}
+                    value={selectedSubScene.name}
+                    onChange={(e) => updateSubScene(selectedSubSceneIndex, { name: e.target.value.toUpperCase().replace(/\s+/g, '_') })}
                     style={styles.input}
                   />
                 </Field>
@@ -325,28 +325,28 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
                       type="number"
                       step="0.5"
                       min="0.5"
-                      value={selectedState.duration || 2}
-                      onChange={(e) => updateState(selectedStateIndex, { duration: parseFloat(e.target.value) || 2 })}
+                      value={selectedSubScene.duration || 2}
+                      onChange={(e) => updateSubScene(selectedSubSceneIndex, { duration: parseFloat(e.target.value) || 2 })}
                       style={styles.input}
                     />
                   </Field>
                 </div>
 
-                <Field label="Next State (Auto)">
+                <Field label="Next Sub-Scene (Auto)">
                   <select
-                    value={selectedState.transition?.nextState || ''}
-                    onChange={(e) => updateState(selectedStateIndex, {
+                    value={selectedSubScene.transition?.nextSubScene || ''}
+                    onChange={(e) => updateSubScene(selectedSubSceneIndex, {
                       transition: {
-                        ...selectedState.transition,
-                        nextState: e.target.value || null,
-                        type: e.target.value ? (selectedState.transition?.type || 'fade') : 'none'
+                        ...selectedSubScene.transition,
+                        nextSubScene: e.target.value || null,
+                        type: e.target.value ? (selectedSubScene.transition?.type || 'fade') : 'none'
                       }
                     })}
                     style={styles.input}
                   >
                     <option value="">None (Static)</option>
-                    {scene.states
-                      .filter((s, i) => i !== selectedStateIndex)
+                    {scene.subScenes
+                      .filter((s, i) => i !== selectedSubSceneIndex)
                       .map(s => (
                         <option key={s.name} value={s.name}>{s.name}</option>
                       ))
@@ -354,11 +354,11 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
                   </select>
                 </Field>
 
-                {selectedState.transition?.nextState && (
+                {selectedSubScene.transition?.nextSubScene && (
                   <Field label="Effect">
                     <select
-                      value={selectedState.transition?.type || 'fade'}
-                      onChange={(e) => updateState(selectedStateIndex, { transition: { ...selectedState.transition, type: e.target.value } })}
+                      value={selectedSubScene.transition?.type || 'fade'}
+                      onChange={(e) => updateSubScene(selectedSubSceneIndex, { transition: { ...selectedSubScene.transition, type: e.target.value } })}
                       style={styles.input}
                     >
                       {TRANSITION_TYPES.filter(t => t.type !== 'none').map(t => (
@@ -368,8 +368,8 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
                   </Field>
                 )}
 
-                {scene.states.length > 1 && (
-                  <button onClick={() => deleteState(selectedStateIndex)} style={{ ...styles.deleteButton, marginTop: '4px', fontSize: '10px', padding: '6px' }}>
+                {scene.subScenes.length > 1 && (
+                  <button onClick={() => deleteSubScene(selectedSubSceneIndex)} style={{ ...styles.deleteButton, marginTop: '4px', fontSize: '10px', padding: '6px' }}>
                     🗑️ Delete Sub-Scene
                   </button>
                 )}
@@ -382,18 +382,18 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
         <div style={{ ...styles.panel, display: 'flex', flexDirection: 'column', padding: '8px' }}>
           <CanvasPreview
             project={project}
-            state={selectedState}
+            subScene={selectedSubScene}
             selectedEntityKey={selectedEntityKey}
             onSelectEntity={setSelectedEntityKey}
             onUpdateEntity={(key, updates) => {
               // Update entity position from drag
               const [layerName, indexStr] = key.split(':')
               const index = parseInt(indexStr)
-              const entities = [...(selectedState.layers?.[layerName] || [])]
+              const entities = [...(selectedSubScene.layers?.[layerName] || [])]
               if (entities[index]) {
                 entities[index] = { ...entities[index], ...updates }
-                updateState(selectedStateIndex, {
-                  layers: { ...selectedState.layers, [layerName]: entities }
+                updateSubScene(selectedSubSceneIndex, {
+                  layers: { ...selectedSubScene.layers, [layerName]: entities }
                 })
               }
             }}
@@ -409,7 +409,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {LAYERS.slice().reverse().map(layer => {
-              const entities = selectedState?.layers?.[layer.name] || []
+              const entities = selectedSubScene?.layers?.[layer.name] || []
               const isDragOver = dragOverLayer === layer.name && draggedEntityType
 
               return (
@@ -494,9 +494,9 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
                           key={type.type}
                           onClick={() => {
                             const newEntity = createDefaultEntity(type.type, layer.name)
-                            const newLayers = { ...selectedState.layers }
+                            const newLayers = { ...selectedSubScene.layers }
                             newLayers[layer.name] = [...(newLayers[layer.name] || []), newEntity]
-                            updateState(selectedStateIndex, { layers: newLayers })
+                            updateSubScene(selectedSubSceneIndex, { layers: newLayers })
                             const newIndex = newLayers[layer.name].length - 1
                             setSelectedEntityKey(`${layer.name}:${newIndex}`)
                             setActiveLayerMenu(null)
@@ -567,7 +567,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
               onDelete={deleteSelectedEntity}
               project={project}
               scenes={project.scenes}
-              states={scene.states}
+              subScenes={scene.subScenes}
               availableAssets={availableAssets}
               onOpenAssetManager={() => setShowAssetManager(true)}
               onOpenLogic={onOpenLogic}
@@ -587,19 +587,19 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
         <AIGenerateModal
           project={project}
           scene={scene}
-          state={selectedState}
+          subScene={selectedSubScene}
           onClose={() => setShowAIModal(false)}
           onGenerate={(generatedEntities, targetLayer) => {
             if (!generatedEntities || !targetLayer) return
 
-            const newLayers = { ...selectedState.layers }
+            const newLayers = { ...selectedSubScene.layers }
             newLayers[targetLayer] = [...(newLayers[targetLayer] || []), ...generatedEntities]
-            updateState(selectedStateIndex, { layers: newLayers })
+            updateSubScene(selectedSubSceneIndex, { layers: newLayers })
             setShowAIModal(false)
           }}
-          onGenerateState={(newState) => {
-            updateScene({ states: [...scene.states, newState] })
-            setSelectedStateIndex(scene.states.length)
+          onGenerateSubScene={(newSubScene) => {
+            updateScene({ subScenes: [...scene.subScenes, newSubScene] })
+            setSelectedSubSceneIndex(scene.subScenes.length)
             setShowAIModal(false)
           }}
         />
@@ -716,10 +716,10 @@ function Field({ label, children, style = {} }) {
 }
 
 /**
- * Canvas Preview Component - Shows visual representation of entities with actual images
- * Supports click-drag to move entities
+ * Canvas Preview Component - Shows visual representation of actors with actual images
+ * Supports click-drag to move actors
  */
-function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUpdateEntity, availableAssets, hiddenLayers }) {
+function CanvasPreview({ project, subScene, selectedEntityKey, onSelectEntity, onUpdateEntity, availableAssets, hiddenLayers }) {
   const containerRef = useRef(null)
   const [loadedImages, setLoadedImages] = useState({})
   const [dragging, setDragging] = useState(null) // { key, startX, startY, entityStartX, entityStartY }
@@ -732,11 +732,11 @@ function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUp
 
   // Load images for sprites
   useEffect(() => {
-    if (!state) return
+    if (!subScene) return
 
     const imagesToLoad = []
     LAYERS.forEach(layer => {
-      const entities = state.layers?.[layer.name] || []
+      const entities = subScene.layers?.[layer.name] || []
       entities.forEach(entity => {
         if (entity.type === 'sprite' && entity.assetId && !loadedImages[entity.assetId]) {
           imagesToLoad.push(entity.assetId)
@@ -774,7 +774,7 @@ function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUp
         img2.src = `http://localhost:5174${asset.path}`
       }
     })
-  }, [state, availableAssets])
+  }, [subScene, availableAssets])
 
   const canvasConfig = project.canvas
 
@@ -819,16 +819,16 @@ function CanvasPreview({ project, state, selectedEntityKey, onSelectEntity, onUp
     setDragging(null)
   }
 
-  if (!state) return null
+  if (!subScene) return null
 
   const previewWidth = canvasConfig.width * scale
   const previewHeight = canvasConfig.height * scale
 
-  // Gather all entities from all non-hidden layers
+  // Gather all actors from all non-hidden layers
   const allEntities = []
   LAYERS.forEach(layer => {
     if (hiddenLayers && hiddenLayers.has(layer.name)) return;
-    const entities = state.layers?.[layer.name] || []
+    const entities = subScene.layers?.[layer.name] || []
     entities.forEach((entity, index) => {
       allEntities.push({ ...entity, _layer: layer.name, _index: index })
     })
@@ -1046,7 +1046,7 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer'
   },
-  addStateButton: {
+  addSubSceneButton: {
     padding: '4px 10px',
     background: 'rgba(99, 102, 241, 0.2)',
     border: '1px solid rgba(99, 102, 241, 0.3)',

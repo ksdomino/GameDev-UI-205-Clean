@@ -34,10 +34,10 @@ export default function Dashboard({
   }
 
   // Calculate stats
-  const totalSubScenes = project.scenes.reduce((sum, s) => sum + s.states.length, 0)
+  const totalSubScenes = project.scenes.reduce((sum, s) => sum + s.subScenes.length, 0)
   const totalActors = project.scenes.reduce((sum, scene) => {
-    return sum + scene.states.reduce((stateSum, state) => {
-      return stateSum + Object.values(state.layers).reduce((layerSum, actors) => {
+    return sum + scene.subScenes.reduce((subSceneSum, subScene) => {
+      return subSceneSum + Object.values(subScene.layers).reduce((layerSum, actors) => {
         return layerSum + actors.length
       }, 0)
     }, 0)

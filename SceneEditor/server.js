@@ -191,12 +191,12 @@ app.post('/api/export-scene', async (req, res) => {
       sceneName: scene.name,
       canvasSize: req.body.canvasSize || { width: 1080, height: 1920 },
       assets: scene.assets || { images: [], audio: [] },
-      states: scene.states.map(state => ({
-        name: state.name,
-        duration: state.duration || 2,
-        clearLayers: state.clearLayers || false,
-        layers: state.layers || {},
-        transition: state.transition || { type: 'none' }
+      subScenes: scene.subScenes.map(subScene => ({
+        name: subScene.name,
+        duration: subScene.duration || 2,
+        clearLayers: subScene.clearLayers || false,
+        layers: subScene.layers || {},
+        transition: subScene.transition || { type: 'none' }
       }))
     };
 
@@ -602,15 +602,15 @@ app.post('/api/actors/:id', async (req, res) => {
  * Also collects used assets for automatic manifest population.
  */
 function mergeGameObjects(scene, project) {
-  if (!project.gameObjects || !scene.states) return { usedAssetIds: new Set() };
+  if (!project.gameObjects || !scene.subScenes) return { usedAssetIds: new Set() };
 
   const gameObjects = project.gameObjects;
   const gameObjectsMap = new Map(gameObjects.map(obj => [obj.id, obj]));
   const usedAssetIds = new Set();
 
-  scene.states.forEach(state => {
-    Object.keys(state.layers).forEach(layerName => {
-      state.layers[layerName] = state.layers[layerName].map(entity => {
+  scene.subScenes.forEach(subScene => {
+    Object.keys(subScene.layers).forEach(layerName => {
+      subScene.layers[layerName] = subScene.layers[layerName].map(entity => {
         // Collect assetId if present
         if (entity.assetId) usedAssetIds.add(entity.assetId);
 
@@ -722,7 +722,7 @@ app.post('/api/export-game', async (req, res) => {
         sceneName: sceneCopy.name,
         canvasSize: project.canvas,
         assets: sceneAssets,
-        states: sceneCopy.states
+        subScenes: sceneCopy.subScenes
       };
 
       const filename = `${sceneCopy.name}.json`;
@@ -1137,16 +1137,16 @@ app.get('/api/data/scenes/:name', async (req, res) => {
 });
 
 /**
- * GET /api/data/states/:sceneName - Get state machine for a scene
+ * GET /api/data/subscenes/:sceneName - Get sub-scenes for a scene
  */
-app.get('/api/data/states/:sceneName', async (req, res) => {
+app.get('/api/data/subscenes/:sceneName', async (req, res) => {
   try {
-    const statesPath = path.join(ENGINE_DATA_DIR, 'states', `${req.params.sceneName}.states.json`);
-    const content = await fs.readFile(statesPath, 'utf-8');
+    const subScenesPath = path.join(ENGINE_DATA_DIR, 'subscenes', `${req.params.sceneName}.subscenes.json`);
+    const content = await fs.readFile(subScenesPath, 'utf-8');
     res.json({ success: true, data: JSON.parse(content) });
   } catch (error) {
     if (error.code === 'ENOENT') {
-      res.status(404).json({ success: false, error: `States for ${req.params.sceneName} not found` });
+      res.status(404).json({ success: false, error: `Sub-scenes for ${req.params.sceneName} not found` });
     } else {
       res.status(500).json({ success: false, error: error.message });
     }

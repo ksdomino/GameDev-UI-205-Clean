@@ -62,17 +62,17 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
     const displaySceneNames = new Set(displayScenes.map(s => s.name))
     const newConnections = []
     displayScenes.forEach(scene => {
-      scene.states?.forEach(state => {
-        if (state.transition?.nextScene && displaySceneNames.has(state.transition.nextScene)) {
+      scene.subScenes?.forEach(subScene => {
+        if (subScene.transition?.nextScene && displaySceneNames.has(subScene.transition.nextScene)) {
           newConnections.push({
             from: scene.name,
-            to: state.transition.nextScene,
-            trigger: state.transition.type,
-            fromState: state.name
+            to: subScene.transition.nextScene,
+            trigger: subScene.transition.type,
+            fromSubScene: subScene.name
           })
         }
         // Also check button onClick actions
-        Object.values(state.layers || {}).flat().forEach(entity => {
+        Object.values(subScene.layers || {}).flat().forEach(entity => {
           if (entity.onClick?.action === 'switchScene' && entity.onClick?.target && displaySceneNames.has(entity.onClick.target)) {
             newConnections.push({
               from: scene.name,
@@ -576,7 +576,7 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
               {/* Node body - pointerEvents none so parent gets drag events */}
               <div style={{ padding: '10px 12px', pointerEvents: 'none', userSelect: 'none' }}>
                 <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                  {node.scene.states?.length || 0} sub-scenes
+                  {node.scene.subScenes?.length || 0} sub-scenes
                 </div>
                 <div style={{ fontSize: '9px', color: '#475569', marginTop: '4px' }}>
                   Double-click to edit

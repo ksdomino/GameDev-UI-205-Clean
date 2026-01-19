@@ -412,11 +412,11 @@ export async function getSceneDefinition(sceneName) {
 }
 
 /**
- * Get state machine for a scene
+ * Get sub-scenes for a scene
  */
-export async function getSceneStates(sceneName) {
+export async function getSceneSubScenes(sceneName) {
   try {
-    const response = await fetch(`${API_BASE}/data/states/${sceneName}`);
+    const response = await fetch(`${API_BASE}/data/subscenes/${sceneName}`);
     return await response.json();
   } catch (error) {
     return { success: false, error: error.message };

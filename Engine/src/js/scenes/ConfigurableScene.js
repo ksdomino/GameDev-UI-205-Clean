@@ -16,11 +16,11 @@ export class ConfigurableScene extends Scene {
     this.config = null;
     this.canvasSize = { width: 1080, height: 1920 };
 
-    // State management
-    this.states = [];
-    this.currentStateIndex = 0;
-    this.currentStateName = null;
-    this.stateTimer = 0;
+    // Sub-scene management
+    this.subScenes = [];
+    this.currentSubSceneIndex = 0;
+    this.currentSubSceneName = null;
+    this.subSceneTimer = 0;
 
     // Entity tracking
     this.entities = new Map(); // id -> entity
@@ -44,8 +44,8 @@ export class ConfigurableScene extends Scene {
       this.canvasSize = config.canvasSize;
     }
 
-    // Store states
-    this.states = config.states || [];
+    // Store sub-scenes (support legacy 'states' key)
+    this.subScenes = config.subScenes || config.states || [];
 
     // Collect assets to preload
     if (config.assets) {
@@ -95,9 +95,9 @@ export class ConfigurableScene extends Scene {
     this.currentStateIndex = 0;
     this.stateTimer = 0;
 
-    if (this.states.length > 0) {
-      this.currentStateName = this.states[0].name;
-      console.log(`[${this.name}] Entering state: ${this.currentStateName}`);
+    if (this.subScenes.length > 0) {
+      this.currentSubSceneName = this.subScenes[0].name;
+      console.log(`[${this.name}] Entering sub-scene: ${this.currentSubSceneName}`);
     }
   }
 
@@ -124,8 +124,8 @@ export class ConfigurableScene extends Scene {
    * Populate layers - set up initial state
    */
   populateLayers() {
-    if (this.states.length > 0) {
-      this._setupState(this.states[0]);
+    if (this.subScenes.length > 0) {
+      this._setupSubScene(this.subScenes[0]);
     }
   }
 
@@ -136,14 +136,14 @@ export class ConfigurableScene extends Scene {
   update(deltaTime) {
     if (!this.isActive || !this.isInitialized) return;
 
-    if (!this.currentStateName && this.states.length > 0) {
-      this._changeState(0);
+    if (!this.currentSubSceneName && this.subScenes.length > 0) {
+      this._changeSubScene(0);
     }
 
-    const currentState = this.states[this.currentStateIndex];
-    if (!currentState) return;
+    const currentSubScene = this.subScenes[this.currentSubSceneIndex];
+    if (!currentSubScene) return;
 
-    this.stateTimer += deltaTime;
+    this.subSceneTimer += deltaTime;
 
     // Update entity animations
     this._updateAnimations(deltaTime);
@@ -156,28 +156,28 @@ export class ConfigurableScene extends Scene {
     }
 
     // Check for timer transition
-    if (currentState.transition && currentState.transition.type === 'timer') {
-      if (this.stateTimer >= currentState.transition.duration) {
-        this._handleTransition(currentState.transition);
+    if (currentSubScene.transition && currentSubScene.transition.type === 'timer') {
+      if (this.subSceneTimer >= currentSubScene.transition.duration) {
+        this._handleTransition(currentSubScene.transition);
       }
     }
   }
 
   /**
-   * Set up a state - clear layers and create entities
+   * Set up a sub-scene - clear layers and create entities
    * @private
    */
-  _setupState(state) {
-    if (state.clearLayers) {
+  _setupSubScene(subScene) {
+    if (subScene.clearLayers) {
       this.layerManager.clearAll();
       this.entities.clear();
       this.entityAnimations.clear();
     }
 
-    if (!state.layers) return;
+    if (!subScene.layers) return;
 
     // Process each layer
-    for (const [layerName, entities] of Object.entries(state.layers)) {
+    for (const [layerName, entities] of Object.entries(subScene.layers)) {
       if (!Array.isArray(entities)) continue;
 
       for (const entityConfig of entities) {
@@ -657,17 +657,17 @@ export class ConfigurableScene extends Scene {
   _getEntityConfig(id) {
     if (!this._config) return null;
 
-    for (const state of this._config.states || []) {
+    for (const subScene of this._config.subScenes || this._config.states || []) {
       // Check in layers object (new format)
-      if (state.layers) {
-        for (const layerEntities of Object.values(state.layers)) {
+      if (subScene.layers) {
+        for (const layerEntities of Object.values(subScene.layers)) {
           for (const entity of layerEntities || []) {
             if (entity.id === id) return entity;
           }
         }
       }
       // Also check entities array (legacy format)
-      for (const entity of state.entities || []) {
+      for (const entity of subScene.entities || []) {
         if (entity.id === id) return entity;
       }
     }
@@ -723,10 +723,12 @@ export class ConfigurableScene extends Scene {
         }
         break;
 
+      case 'switchSubScene':
+      case 'changeSubScene':
       case 'switchState':
-      case 'changeState':  // Support both action names
+      case 'changeState':  // Support legacy action names
         if (action.target) {
-          this._switchToState(action.target);
+          this._switchToSubScene(action.target);
         }
         break;
 
@@ -754,37 +756,37 @@ export class ConfigurableScene extends Scene {
   _handleTransition(transition) {
     if (transition.nextScene) {
       this.switchScene(transition.nextScene);
-    } else if (transition.nextState) {
-      this._switchToState(transition.nextState);
+    } else if (transition.nextSubScene || transition.nextState) {
+      this._switchToSubScene(transition.nextSubScene || transition.nextState);
     }
   }
 
   /**
-   * Switch to a named state
+   * Switch to a named sub-scene
    * @private
    */
-  _switchToState(stateName) {
-    const stateIndex = this.states.findIndex(s => s.name === stateName);
-    if (stateIndex === -1) {
-      console.warn(`[${this.name}] State not found: ${stateName}`);
+  _switchToSubScene(subSceneName) {
+    const subSceneIndex = this.subScenes.findIndex(s => s.name === subSceneName);
+    if (subSceneIndex === -1) {
+      console.warn(`[${this.name}] Sub-scene not found: ${subSceneName}`);
       return;
     }
 
-    console.log(`[${this.name}] Switching to state: ${stateName}`);
+    console.log(`[${this.name}] Switching to sub-scene: ${subSceneName}`);
 
-    this.currentStateIndex = stateIndex;
-    this.currentStateName = stateName;
-    this.stateTimer = 0;
+    this.currentSubSceneIndex = subSceneIndex;
+    this.currentSubSceneName = subSceneName;
+    this.subSceneTimer = 0;
 
-    this._setupState(this.states[stateIndex]);
+    this._setupSubScene(this.subScenes[subSceneIndex]);
   }
 
   /**
-   * Get current state name
+   * Get current sub-scene name
    * @returns {string}
    */
-  getCurrentStateName() {
-    return this.currentStateName;
+  getCurrentSubSceneName() {
+    return this.currentSubSceneName;
   }
 
   /**

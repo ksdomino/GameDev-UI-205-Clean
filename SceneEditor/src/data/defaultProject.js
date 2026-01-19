@@ -85,8 +85,8 @@ export const createDefaultScene = (name = 'NewScene', isStart = false) => ({
     audio: []
   },
 
-  // Sub-scenes (states) within this scene
-  states: [
+  // Sub-Scenes within this scene
+  subScenes: [
     {
       name: 'MAIN',
       duration: null, // null = no auto-transition
@@ -144,9 +144,9 @@ export const getNextSceneNumber = (existingSceneNames, levelNumber) => {
 };
 
 /**
- * Create a default sub-scene (state)
+ * Create a default sub-scene
  */
-export const createDefaultState = (name = 'NEW_SUB_SCENE') => ({
+export const createDefaultSubScene = (name = 'NEW_SUB_SCENE') => ({
   name,
   duration: 2.0,
   clearLayers: true,

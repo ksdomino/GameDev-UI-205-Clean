@@ -58,6 +58,66 @@ const PRESETS = [
             }
         },
         nodes: []
+    },
+    {
+        id: 'BossEnemy',
+        label: '👹 Boss Enemy',
+        type: 'enemy',
+        description: 'Large health pool, multiple attack phases, and minions.',
+        data: {
+            variables: {
+                hp: { default: 1000 },
+                phase: { default: 1 },
+                speed: { default: 50 }
+            }
+        },
+        nodes: [
+            { id: '1', type: 'event', name: 'On HP Low', x: 100, y: 100 },
+            { id: '2', type: 'action', name: 'Change Phase', x: 300, y: 100 }
+        ]
+    },
+    {
+        id: 'HealthPickup',
+        label: '❤️ Health Pickup',
+        type: 'powerup',
+        description: 'Restores a portion of the player health.',
+        data: {
+            variables: {
+                healAmount: { default: 20 }
+            }
+        },
+        nodes: [
+            { id: '1', type: 'event', name: 'On Touch', x: 100, y: 100 },
+            { id: '2', type: 'action', name: 'Heal Player', x: 300, y: 100 }
+        ]
+    },
+    {
+        id: 'SpeedBoost',
+        label: '⚡ Speed Boost',
+        type: 'powerup',
+        description: 'Increases movement speed for a limited time.',
+        data: {
+            variables: {
+                multiplier: { default: 2 },
+                duration: { default: 3 }
+            }
+        },
+        nodes: []
+    },
+    {
+        id: 'Coin',
+        label: '🪙 Gold Coin',
+        type: 'item',
+        description: 'Standard currency item to collect.',
+        data: {
+            variables: {
+                value: { default: 10 }
+            }
+        },
+        nodes: [
+            { id: '1', type: 'event', name: 'On Collect', x: 100, y: 100 },
+            { id: '2', type: 'action', name: 'Add Currency', x: 300, y: 100 }
+        ]
     }
 ];
 

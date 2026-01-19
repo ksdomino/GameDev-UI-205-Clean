@@ -1,28 +1,37 @@
 import { useState, useEffect } from 'react'
-import { LAYERS, createDefaultState } from '../data/defaultProject'
+import { LAYERS, createDefaultSubScene } from '../data/defaultProject'
 
 /**
  * AI Generate Modal - Use Claude API to generate scene content
  */
-export default function AIGenerateModal({ project, scene, state, onClose, onGenerate, onGenerateState }) {
+export default function AIGenerateModal({ project, scene, subScene, onClose, onGenerate, onGenerateSubScene }) {
+  const [provider, setProvider] = useState('claude') // 'claude', 'gemini', 'openai'
   const [apiKey, setApiKey] = useState('')
-  const [mode, setMode] = useState('entities') // 'entities', 'state', 'full-scene'
+  const [geminiKey, setGeminiKey] = useState('')
+  const [openaiKey, setOpenaiKey] = useState('')
+  const [mode, setMode] = useState('entities') // 'entities', 'subScene', 'full-scene'
   const [prompt, setPrompt] = useState('')
   const [targetLayer, setTargetLayer] = useState('SPRITES')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
 
-  // Load API key from localStorage
+  // Load API keys from localStorage
   useEffect(() => {
-    const savedKey = localStorage.getItem('claude-api-key')
-    if (savedKey) setApiKey(savedKey)
+    setApiKey(localStorage.getItem('claude-api-key') || '')
+    setGeminiKey(localStorage.getItem('gemini-api-key') || '')
+    setOpenaiKey(localStorage.getItem('openai-api-key') || '')
+    setProvider(localStorage.getItem('ai-provider') || 'claude')
   }, [])
 
   // Save API key
-  const saveApiKey = (key) => {
-    setApiKey(key)
-    localStorage.setItem('claude-api-key', key)
+  const saveKey = (type, key) => {
+    switch (type) {
+      case 'claude': setApiKey(key); localStorage.setItem('claude-api-key', key); break
+      case 'gemini': setGeminiKey(key); localStorage.setItem('gemini-api-key', key); break
+      case 'openai': setOpenaiKey(key); localStorage.setItem('openai-api-key', key); break
+      case 'provider': setProvider(key); localStorage.setItem('ai-provider', key); break
+    }
   }
 
   // Generate prompt examples based on mode
@@ -30,8 +39,8 @@ export default function AIGenerateModal({ project, scene, state, onClose, onGene
     switch (mode) {
       case 'entities':
         return 'E.g., "Create a title screen with the game name centered, a play button below it, and a settings gear icon in the corner"'
-      case 'state':
-        return 'E.g., "Create an intro animation state that fades in a logo for 2 seconds, then shows the title with a pulse animation"'
+      case 'subScene':
+        return 'E.g., "Create an intro animation sub-scene that fades in a logo for 2 seconds, then shows the title with a pulse animation"'
       case 'full-scene':
         return 'E.g., "Create a complete title scene with intro animation, main menu with play/settings/credits buttons, and transitions to the game scene"'
       default:
@@ -137,9 +146,9 @@ Shape types: "rect", "circle", "line"
   }
 }
 
-# STATE STRUCTURE (for state/full-scene modes)
+# SUB-SCENE STRUCTURE (for subScene/full-scene modes)
 {
-  "name": "STATE_NAME",
+  "name": "SUB_SCENE_NAME",
   "duration": 2.0,
   "clearLayers": false,
   "layers": {
@@ -151,7 +160,7 @@ Shape types: "rect", "circle", "line"
   "transition": {
     "type": "timer|button|none",
     "duration": 2.0,
-    "nextState": "NEXT_STATE_NAME",
+    "nextSubScene": "NEXT_SUB_SCENE_NAME",
     "nextScene": null
   }
 }
@@ -162,8 +171,8 @@ Shape types: "rect", "circle", "line"
 3. Respond with ONLY valid JSON - no markdown, no explanation
 4. Use unique IDs (e.g., "title_text", "play_button", "bg_sprite")
 5. For mode "entities": return array []
-6. For mode "state": return single object {}
-7. For mode "full-scene": return array of states []
+6. For mode "subScene": return single object {}
+7. For mode "full-scene": return array of sub-scenes []
 8. Button width: typically 200-400px, height: 80-120px
 9. Title text: usually y=300-500 (upper third of screen)
 10. Main buttons: usually y=800-1400 (middle/lower screen)
@@ -177,13 +186,64 @@ Shape types: "rect", "circle", "line"
 - Use clear, action-oriented button text ("PLAY", "START", "CONTINUE")`
   }
 
-  // Call Claude API
-  const callClaudeAPI = async () => {
-    if (!apiKey) {
-      setError('Please enter your Claude API key')
-      return
+  // Call Gemini API
+  const callGeminiAPI = async () => {
+    if (!geminiKey) throw new Error('Please enter your Gemini API key')
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `${buildSystemPrompt()}\n\nUser Request: Generate ${mode === 'entities' ? 'actors' : mode === 'subScene' ? 'a sub-scene' : 'sub-scenes'} for: ${prompt}\n\nCurrent scene: ${scene.name}\nCurrent sub-scene: ${subScene?.name || 'none'}\n${mode === 'entities' ? `Target layer: ${targetLayer}` : ''}\n\nRespond with only the JSON, no explanation.`
+          }]
+        }]
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error?.message || `Gemini Status: ${response.status}`)
     }
 
+    const data = await response.json()
+    return data.candidates[0].content.parts[0].text
+  }
+
+  // Call OpenAI API
+  const callOpenAIAPI = async () => {
+    if (!openaiKey) throw new Error('Please enter your OpenAI API key')
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: buildSystemPrompt() },
+          {
+            role: 'user',
+            content: `Generate ${mode === 'entities' ? 'actors' : mode === 'subScene' ? 'a sub-scene' : 'sub-scenes'} for: ${prompt}\n\nCurrent scene: ${scene.name}\nCurrent sub-scene: ${subScene?.name || 'none'}\n${mode === 'entities' ? `Target layer: ${targetLayer}` : ''}`
+          }
+        ]
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error?.message || `OpenAI Status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.choices[0].message.content
+  }
+
+  // Main Generate Handler
+  const generate = async () => {
     if (!prompt.trim()) {
       setError('Please enter a prompt describing what to generate')
       return
@@ -194,46 +254,47 @@ Shape types: "rect", "circle", "line"
     setResult(null)
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          system: buildSystemPrompt(),
-          messages: [
-            {
+      let content = ''
+      if (provider === 'claude') {
+        if (!apiKey) throw new Error('Please enter your Claude API key')
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 4096,
+            system: buildSystemPrompt(),
+            messages: [{
               role: 'user',
-              content: `Generate ${mode === 'entities' ? 'actors' : mode === 'state' ? 'a state' : 'states'} for: ${prompt}\n\nCurrent scene: ${scene.name}\nCurrent state: ${state?.name || 'none'}\n${mode === 'entities' ? `Target layer: ${targetLayer}` : ''}\n\nRespond with only the JSON, no explanation.`
-            }
-          ]
+              content: `Generate ${mode === 'entities' ? 'actors' : mode === 'subScene' ? 'a sub-scene' : 'sub-scenes'} for: ${prompt}\n\nCurrent scene: ${scene.name}\nCurrent sub-scene: ${subScene?.name || 'none'}\n${mode === 'entities' ? `Target layer: ${targetLayer}` : ''}\n\nRespond with only JSON.`
+            }]
+          })
         })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error?.message || `API error: ${response.status}`)
+        if (!response.ok) throw new Error(`Claude Error: ${response.status}`)
+        const data = await response.json()
+        content = data.content[0].text
+      } else if (provider === 'gemini') {
+        content = await callGeminiAPI()
+      } else if (provider === 'openai') {
+        content = await callOpenAIAPI()
       }
-
-      const data = await response.json()
-      const content = data.content[0].text
 
       // Parse JSON from response
       const jsonMatch = content.match(/\[[\s\S]*\]|\{[\s\S]*\}/)
       if (!jsonMatch) {
-        throw new Error('Could not parse JSON from response')
+        throw new Error('Could not parse JSON from response. Try a different prompt.')
       }
 
       const parsed = JSON.parse(jsonMatch[0])
       setResult(parsed)
 
     } catch (err) {
-      console.error('Claude API error:', err)
+      console.error('AI API error:', err)
       setError(err.message)
     } finally {
       setIsLoading(false)
@@ -247,13 +308,13 @@ Shape types: "rect", "circle", "line"
     if (mode === 'entities') {
       // result is an array of entities
       onGenerate(Array.isArray(result) ? result : [result], targetLayer)
-    } else if (mode === 'state') {
-      // result is a state object
-      onGenerateState(result)
+    } else if (mode === 'subScene') {
+      // result is a sub-scene object
+      onGenerateSubScene(result)
     } else if (mode === 'full-scene') {
-      // result is an array of states - add them one by one
-      const states = Array.isArray(result) ? result : [result]
-      states.forEach(s => onGenerateState(s))
+      // result is an array of sub-scenes - add them one by one
+      const subScenes = Array.isArray(result) ? result : [result]
+      subScenes.forEach(s => onGenerateSubScene(s))
     }
   }
 
@@ -279,7 +340,7 @@ Shape types: "rect", "circle", "line"
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
               { id: 'entities', label: '🎭 Actors', desc: 'Add to current sub-scene' },
-              { id: 'state', label: '📍 Sub-Scene', desc: 'Create a new sub-scene' },
+              { id: 'subScene', label: '📍 Sub-Scene', desc: 'Create a new sub-scene' },
               { id: 'full-scene', label: '🌍 Full Scene', desc: 'Complete sequence' }
             ].map(m => (
               <button
@@ -326,31 +387,67 @@ Shape types: "rect", "circle", "line"
           />
         </div>
 
-        {/* Third Party API Keys (Dummy Fields) */}
+        {/* AI Provider Selection */}
+        <div style={styles.section}>
+          <label style={styles.label}>AI Provider</label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {[
+              { id: 'claude', label: '💜 Claude', desc: 'Anthropic' },
+              { id: 'gemini', label: '💙 Gemini', desc: 'Google' },
+              { id: 'openai', label: '💚 OpenAI', desc: 'GPT-4o' }
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => saveKey('provider', p.id)}
+                style={{
+                  ...styles.modeButton,
+                  background: provider === p.id ? 'rgba(99, 102, 241, 0.3)' : 'rgba(0,0,0,0.2)',
+                  borderColor: provider === p.id ? '#6366f1' : 'rgba(255,255,255,0.1)',
+                  padding: '8px 4px'
+                }}
+              >
+                <div style={{ fontSize: '13px' }}>{p.label}</div>
+                <div style={{ fontSize: '9px', color: '#64748b' }}>{p.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Third Party API Keys */}
         <div style={{ ...styles.section, background: 'rgba(0,0,0,0.1)', padding: '12px', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.05)' }}>
-          <label style={{ ...styles.label, fontSize: '9px', opacity: 0.6 }}>Third Party Integrations (Optional)</label>
+          <label style={{ ...styles.label, fontSize: '9px', opacity: 0.6 }}>API Keys (Stored Locally)</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <input type="password" placeholder="Gemini API Key" style={{ ...styles.input, padding: '6px 10px', fontSize: '11px' }} />
-            <input type="password" placeholder="OpenAI API Key" style={{ ...styles.input, padding: '6px 10px', fontSize: '11px' }} />
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => saveApiKey(e.target.value)}
-                placeholder="Claude API Key (Required for now)"
-                style={{ ...styles.input, padding: '6px 10px', fontSize: '11px', flex: 1, borderColor: apiKey ? 'rgba(99, 102, 241, 0.4)' : 'rgba(239, 68, 68, 0.3)' }}
-              />
-            </div>
+            <input
+              type="password"
+              value={geminiKey}
+              onChange={(e) => saveKey('gemini', e.target.value)}
+              placeholder="Gemini API Key"
+              style={{ ...styles.input, padding: '6px 10px', fontSize: '11px', borderColor: provider === 'gemini' && !geminiKey ? '#ef4444' : 'rgba(255,255,255,0.1)' }}
+            />
+            <input
+              type="password"
+              value={openaiKey}
+              onChange={(e) => saveKey('openai', e.target.value)}
+              placeholder="OpenAI API Key"
+              style={{ ...styles.input, padding: '6px 10px', fontSize: '11px', borderColor: provider === 'openai' && !openaiKey ? '#ef4444' : 'rgba(255,255,255,0.1)' }}
+            />
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => saveKey('claude', e.target.value)}
+              placeholder="Claude API Key"
+              style={{ ...styles.input, padding: '6px 10px', fontSize: '11px', borderColor: provider === 'claude' && !apiKey ? '#ef4444' : 'rgba(255,255,255,0.1)' }}
+            />
           </div>
         </div>
 
         {/* Generate Button */}
         <button
-          onClick={callClaudeAPI}
-          disabled={isLoading || !apiKey || !prompt.trim()}
+          onClick={generate}
+          disabled={isLoading || !prompt.trim()}
           style={{
             ...styles.generateButton,
-            opacity: isLoading || !apiKey || !prompt.trim() ? 0.5 : 1
+            opacity: isLoading || !prompt.trim() ? 0.5 : 1
           }}
         >
           {isLoading ? '⏳ Generating...' : '✨ Generate'}
@@ -389,7 +486,7 @@ Shape types: "rect", "circle", "line"
           <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '11px', color: '#94a3b8', lineHeight: '1.6' }}>
             <li>Be specific about positions (center, top-left, etc.)</li>
             <li>Mention colors, sizes, and animations you want</li>
-            <li>Reference existing scene/state names for transitions</li>
+            <li>Reference existing scene/sub-scene names for transitions</li>
             <li>For game-specific entities, describe their behavior</li>
           </ul>
         </div>

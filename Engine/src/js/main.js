@@ -136,12 +136,14 @@ function setupPostMessageHandler(engine) {
         notifyParent({ type: 'ENGINE_STOPPED' });
         break;
 
+      case 'SWITCH_SUB_SCENE':
       case 'SWITCH_STATE':
-        // Switch to a specific state in the current scene
+        // Switch to a specific sub-scene in the current scene
         const currentScene = engine.sceneManager.currentScene;
-        if (currentScene && currentScene._switchToState) {
-          currentScene._switchToState(data.stateName);
-          notifyParent({ type: 'STATE_CHANGED', data: { stateName: data.stateName } });
+        if (currentScene && (currentScene._switchToSubScene || currentScene._switchToState)) {
+          const switchFn = (currentScene._switchToSubScene || currentScene._switchToState).bind(currentScene);
+          switchFn(data.subSceneName || data.stateName);
+          notifyParent({ type: 'SUB_SCENE_CHANGED', data: { subSceneName: data.subSceneName || data.stateName } });
         }
         break;
 
@@ -231,7 +233,7 @@ function sendDebugInfo(engine) {
     data: {
       isRunning: engine.isRunning,
       sceneName: currentScene?.name || 'None',
-      stateName: currentScene?.getCurrentStateName?.() || 'N/A',
+      subSceneName: currentScene?.getCurrentSubSceneName?.() || currentScene?.getCurrentStateName?.() || 'N/A',
       fps: Math.round(1000 / 16.67), // Approximate
       layerCounts,
       totalEntities: Object.values(layerCounts).reduce((a, b) => a + b, 0)
@@ -269,7 +271,7 @@ async function loadSceneFromConfig(engine, config) {
       type: 'SCENE_LOADED',
       data: {
         sceneName: config.sceneName,
-        states: config.states?.map(s => s.name) || []
+        subScenes: (config.subScenes || config.states || []).map(s => s.name)
       }
     });
 
@@ -545,7 +547,7 @@ async function loadJSONScene(engine, jsonPath) {
     }
 
     console.log(`Scene "${config.sceneName}" loaded successfully`);
-    console.log('States:', config.states.map(s => s.name).join(' → '));
+    console.log('Sub-Scenes:', (config.subScenes || config.states || []).map(s => s.name).join(' → '));
 
     return scene;
   } catch (error) {

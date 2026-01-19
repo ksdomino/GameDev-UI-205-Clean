@@ -53,7 +53,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
           setIsRunning(true)
           setEngineError(false)
           addLog(`Scene loaded: ${data.sceneName}`, 'success')
-          addLog(`States: ${data.states.join(' → ')}`, 'info')
+          addLog(`Sub-Scenes: ${data.subScenes.join(' → ')}`, 'info')
           break
 
         case 'PROJECT_LOADED':
@@ -63,15 +63,15 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
           addLog(`Start scene: ${data.startScene}`, 'info')
           break
 
-        case 'STATE_CHANGED':
-          addLog(`State changed: ${data.stateName}`, 'info')
+        case 'SUB_SCENE_CHANGED':
+          addLog(`Sub-Scene changed: ${data.subSceneName}`, 'info')
           break
 
         case 'DEBUG_INFO':
           // Adapt engine data to new labels
           setDebugInfo({
             ...data,
-            subSceneName: data.stateName,
+            subSceneName: data.subSceneName,
             totalActors: data.totalEntities
           })
           setFpsHistory(prev => [...prev.slice(1), data.fps])
@@ -110,12 +110,12 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
         images: scene.assets?.images || [],
         audio: scene.assets?.audio || []
       },
-      states: scene.states.map(state => ({
-        name: state.name,
-        duration: state.duration || 2,
-        clearLayers: state.clearLayers || false,
-        layers: state.layers || {},
-        transition: state.transition || { type: 'none' }
+      subScenes: scene.subScenes.map(subScene => ({
+        name: subScene.name,
+        duration: subScene.duration || 2,
+        clearLayers: subScene.clearLayers || false,
+        layers: subScene.layers || {},
+        transition: subScene.transition || { type: 'none' }
       }))
     }
   }
@@ -142,12 +142,12 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
           images: scene.assets?.images || [],
           audio: scene.assets?.audio || []
         },
-        states: scene.states.map(state => ({
-          name: state.name,
-          duration: state.duration || 2,
-          clearLayers: state.clearLayers || false,
-          layers: state.layers || {},
-          transition: state.transition || { type: 'none' }
+        subScenes: scene.subScenes.map(subScene => ({
+          name: subScene.name,
+          duration: subScene.duration || 2,
+          clearLayers: subScene.clearLayers || false,
+          layers: subScene.layers || {},
+          transition: subScene.transition || { type: 'none' }
         }))
       }))
     }
@@ -168,20 +168,20 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
     sendToEngine({ type: 'STOP_ENGINE' })
   }
 
-  // Switch to next state
-  const nextState = () => {
-    const currentStateIndex = selectedScene.states.findIndex(s => s.name === debugInfo.subSceneName)
-    const nextIndex = (currentStateIndex + 1) % selectedScene.states.length
-    const nextStateName = selectedScene.states[nextIndex].name
+  // Switch to next sub-scene
+  const nextSubScene = () => {
+    const currentSubSceneIndex = selectedScene.subScenes.findIndex(s => s.name === debugInfo.subSceneName)
+    const nextIndex = (currentSubSceneIndex + 1) % selectedScene.subScenes.length
+    const nextSubSceneName = selectedScene.subScenes[nextIndex].name
 
-    sendToEngine({ type: 'SWITCH_STATE', data: { stateName: nextStateName } })
+    sendToEngine({ type: 'SWITCH_SUB_SCENE', data: { subSceneName: nextSubSceneName } })
   }
 
-  // Restart from first state
+  // Restart from first sub-scene
   const restartScene = () => {
-    const firstStateName = selectedScene.states[0]?.name
-    if (firstStateName) {
-      sendToEngine({ type: 'SWITCH_STATE', data: { stateName: firstStateName } })
+    const firstSubSceneName = selectedScene.subScenes[0]?.name
+    if (firstSubSceneName) {
+      sendToEngine({ type: 'SWITCH_SUB_SCENE', data: { subSceneName: firstSubSceneName } })
       addLog('Scene restarted', 'info')
     }
   }
@@ -310,7 +310,7 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
             <button onClick={restartScene} disabled={!isRunning} style={styles.controlButton}>
               🔄 Restart
             </button>
-            <button onClick={nextState} disabled={!isRunning} style={styles.controlButton}>
+            <button onClick={nextSubScene} disabled={!isRunning} style={styles.controlButton}>
               ⏭️ Next Sub-Scene
             </button>
           </div>
@@ -492,27 +492,27 @@ export default function DebugPanel({ project, sceneIndex, onBack }) {
         <div style={{ marginTop: '12px', textAlign: 'center' }}>
           <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '8px' }}>Sub-Scenes in Scene</div>
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {selectedScene?.states.map((state, i) => (
+            {selectedScene?.subScenes.map((subScene, i) => (
               <button
                 key={i}
-                onClick={() => isRunning && sendToEngine({ type: 'SWITCH_STATE', data: { stateName: state.name } })}
+                onClick={() => isRunning && sendToEngine({ type: 'SWITCH_SUB_SCENE', data: { subSceneName: subScene.name } })}
                 disabled={!isRunning}
                 style={{
                   padding: '4px 8px',
-                  background: debugInfo.subSceneName === state.name
+                  background: debugInfo.subSceneName === subScene.name
                     ? 'rgba(99, 102, 241, 0.5)'
                     : 'rgba(255,255,255,0.05)',
-                  border: debugInfo.subSceneName === state.name
+                  border: debugInfo.subSceneName === subScene.name
                     ? '1px solid #6366f1'
                     : '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '4px',
-                  color: debugInfo.subSceneName === state.name ? '#fff' : '#94a3b8',
+                  color: debugInfo.subSceneName === subScene.name ? '#fff' : '#94a3b8',
                   fontSize: '9px',
                   cursor: isRunning ? 'pointer' : 'default',
                   opacity: isRunning ? 1 : 0.5
                 }}
               >
-                {state.name}
+                {subScene.name}
               </button>
             ))}
           </div>
