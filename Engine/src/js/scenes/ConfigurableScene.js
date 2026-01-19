@@ -613,31 +613,37 @@ export class ConfigurableScene extends Scene {
     const { x, y } = this.inputHandler.mouse;
     const nodeExecutor = this.engine.nodeExecutor;
 
+    console.log(`[${this.name}] Checking interactive clicks at (${x.toFixed(0)}, ${y.toFixed(0)}), nodeExecutor:`, !!nodeExecutor, 'entities:', this.entities.size);
+
     if (!nodeExecutor) return;
 
     for (const [id, entity] of this.entities) {
       // Check if entity is interactive (from config) and was clicked
       const config = this._getEntityConfig(id);
+      console.log(`[${this.name}] Entity ${id}: config=`, config?.interactive);
       if (!config || !config.interactive) continue;
 
       // Check if click is within entity bounds
       const isInBounds = this._isPointInEntity(x, y, entity, config);
+      console.log(`[${this.name}] Entity ${id}: click(${x.toFixed(0)},${y.toFixed(0)}) entity.x=${entity.x} entity.y=${entity.y} config.x=${config.x} config.y=${config.y} isInBounds=${isInBounds}`);
 
       if (isInBounds) {
         console.log(`[NodeExecutor] OnClick triggered for: ${id}`);
-        nodeExecutor.triggerEvent(id, 'OnClick', {
-          clickX: x,
-          clickY: y
-        });
 
-        // Also trigger for any actor registered with this entity ID
-        // (actors may have different IDs than entities)
-        for (const [actorId] of nodeExecutor.actors) {
-          if (actorId.includes(id) || id.includes(actorId)) {
-            nodeExecutor.triggerEvent(actorId, 'OnClick', {
-              clickX: x,
-              clickY: y
-            });
+        // Track which actors we've already triggered to avoid duplicates
+        const triggeredActors = new Set();
+
+        // First, trigger for the entity ID itself if an actor exists with that ID
+        if (nodeExecutor.actors.has(id)) {
+          nodeExecutor.triggerEvent(id, 'OnClick', { clickX: x, clickY: y });
+          triggeredActors.add(id);
+        }
+
+        // Also trigger for actors that reference this entity via entityRef
+        for (const [actorId, actor] of nodeExecutor.actors) {
+          if (!triggeredActors.has(actorId) && actor.entityRef === id) {
+            nodeExecutor.triggerEvent(actorId, 'OnClick', { clickX: x, clickY: y });
+            triggeredActors.add(actorId);
           }
         }
       }
@@ -652,6 +658,15 @@ export class ConfigurableScene extends Scene {
     if (!this._config) return null;
 
     for (const state of this._config.states || []) {
+      // Check in layers object (new format)
+      if (state.layers) {
+        for (const layerEntities of Object.values(state.layers)) {
+          for (const entity of layerEntities || []) {
+            if (entity.id === id) return entity;
+          }
+        }
+      }
+      // Also check entities array (legacy format)
       for (const entity of state.entities || []) {
         if (entity.id === id) return entity;
       }
@@ -678,9 +693,10 @@ export class ConfigurableScene extends Scene {
 
     if (shape === 'circle') {
       // Circular hit detection
-      const radius = ew / 2;
-      const cx = ex;
-      const cy = ey;
+      // Note: circles render at (x + radius, y + radius) so center needs same offset
+      const radius = config.radius || ew / 2;
+      const cx = ex + radius;
+      const cy = ey + radius;
       const dx = x - cx;
       const dy = y - cy;
       return (dx * dx + dy * dy) <= (radius * radius);

@@ -17,8 +17,8 @@ const TABS = [
     { id: 'upgrades', label: '⬆️ Upgrades' }
 ];
 
-export default function GameDataHub({ project, updateProject, onBack }) {
-    const [activeTab, setActiveTab] = useState('actors');
+export default function GameDataHub({ project, updateProject, onBack, initialActorId }) {
+    const [activeTab, setActiveTab] = useState(initialActorId ? 'actors' : 'actors');
 
     return (
         <div style={styles.container}>
@@ -48,7 +48,7 @@ export default function GameDataHub({ project, updateProject, onBack }) {
             {/* Tab Content */}
             <main style={styles.content}>
                 {activeTab === 'actors' && (
-                    <GameDataPanel />
+                    <GameDataPanel initialActorId={initialActorId} />
                 )}
                 {activeTab === 'waves' && (
                     <WaveEditor

@@ -11,7 +11,7 @@ import { listAssets } from '../services/api'
 /**
  * Scene Editor - Timeline-based scene creation with drag-drop
  */
-export default function SceneEditor({ project, updateProject, sceneIndex, onBack, onOpenDebug }) {
+export default function SceneEditor({ project, updateProject, sceneIndex, onBack, onOpenDebug, onOpenLogic }) {
   const scene = project.scenes[sceneIndex]
   const [selectedStateIndex, setSelectedStateIndex] = useState(0)
   const [selectedEntityKey, setSelectedEntityKey] = useState(null) // "LAYER_NAME:index"
@@ -241,7 +241,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      {/* Header */}
+      {/* Header - Simplified as States moved to sidebar */}
       <header style={{
         padding: '6px 16px',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -267,132 +267,102 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
         </div>
       </header>
 
-      {/* State Flow View */}
-      <div style={{ padding: '6px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-          <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>🔀 State Flow</span>
-          <button onClick={addState} style={styles.addStateButton}>+ State</button>
-        </div>
-
-        <StateFlowView
-          scene={scene}
-          selectedStateIndex={selectedStateIndex}
-          onSelectState={(i) => { setSelectedStateIndex(i); setSelectedEntityKey(null) }}
-          onUpdateState={updateState}
-        />
-      </div>
-
-      {/* Main Content - 4 columns */}
+      {/* Main Content - 4 columns (States, Canvas, Layers, Properties) */}
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: '200px 1fr 260px 240px',
+        gridTemplateColumns: '220px 1fr 260px 240px',
         gap: '8px',
         padding: '8px 12px',
         overflow: 'hidden',
         minHeight: 0
       }}>
-        {/* Column 1: Entity Types (Drag Source) */}
-        <div style={styles.panel}>
-          <h3 style={styles.panelHeader}>📦 Entities</h3>
-          <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 10px 0' }}>Drag to layers →</p>
+        {/* Column 1: States (Flow & Settings) */}
+        <div style={{ ...styles.panel, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={styles.panelHeader}>🔀 States</h3>
+            <button onClick={addState} style={{ ...styles.addStateButton, padding: '2px 8px' }}>+ New</button>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {ENTITY_TYPES.map(entityType => (
-              <div
-                key={entityType.type}
-                draggable
-                onDragStart={() => setDraggedEntityType(entityType.type)}
-                onDragEnd={() => { setDraggedEntityType(null); setDragOverLayer(null) }}
-                style={{
-                  padding: '10px',
-                  background: draggedEntityType === entityType.type ? 'rgba(99, 102, 241, 0.3)' : 'rgba(0,0,0,0.2)',
-                  borderRadius: '6px',
-                  cursor: 'grab',
-                  border: '1px solid transparent',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>{entityType.icon}</span>
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: '500' }}>{entityType.label}</div>
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>{entityType.description}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div style={{ flex: 1, overflowY: 'auto', marginTop: '8px', paddingRight: '4px' }}>
+            <StateFlowView
+              scene={scene}
+              selectedStateIndex={selectedStateIndex}
+              onSelectState={(i) => { setSelectedStateIndex(i); setSelectedEntityKey(null) }}
+              onUpdateState={updateState}
+              vertical={true}
+            />
           </div>
 
           {/* State Settings */}
-          <h3 style={{ ...styles.panelHeader, marginTop: '12px' }}>⚙️ State Settings</h3>
           {selectedState && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <input
-                type="text"
-                value={selectedState.name}
-                onChange={(e) => updateState(selectedStateIndex, { name: e.target.value.toUpperCase().replace(/\s+/g, '_') })}
-                placeholder="STATE_NAME"
-                style={styles.input}
-              />
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', width: '50px' }}>Duration</span>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  value={selectedState.duration || 2}
-                  onChange={(e) => updateState(selectedStateIndex, { duration: parseFloat(e.target.value) || 2 })}
-                  style={{ ...styles.input, width: '50px', flex: 'none' }}
-                />
-                <span style={{ fontSize: '10px', color: '#64748b' }}>sec</span>
-              </div>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px', marginTop: '10px' }}>
+              <h3 style={{ ...styles.panelHeader, border: 'none', padding: 0, marginBottom: '8px' }}>⚙️ Settings</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <Field label="Name">
+                  <input
+                    type="text"
+                    value={selectedState.name}
+                    onChange={(e) => updateState(selectedStateIndex, { name: e.target.value.toUpperCase().replace(/\s+/g, '_') })}
+                    style={styles.input}
+                  />
+                </Field>
 
-              {/* Next State Connection */}
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', width: '50px' }}>→ Next</span>
-                <select
-                  value={selectedState.transition?.nextState || ''}
-                  onChange={(e) => updateState(selectedStateIndex, {
-                    transition: {
-                      ...selectedState.transition,
-                      nextState: e.target.value || null,
-                      type: e.target.value ? (selectedState.transition?.type || 'fade') : 'none'
-                    }
-                  })}
-                  style={{ ...styles.input, flex: 1 }}
-                >
-                  <option value="">None (stay here)</option>
-                  {scene.states
-                    .filter((s, i) => i !== selectedStateIndex)
-                    .map(s => (
-                      <option key={s.name} value={s.name}>{s.name}</option>
-                    ))
-                  }
-                </select>
-              </div>
-
-              {/* Transition Type (only show if next state selected) */}
-              {selectedState.transition?.nextState && (
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '10px', color: '#64748b', width: '50px' }}>Effect</span>
-                  <select
-                    value={selectedState.transition?.type || 'fade'}
-                    onChange={(e) => updateState(selectedStateIndex, { transition: { ...selectedState.transition, type: e.target.value } })}
-                    style={{ ...styles.input, flex: 1 }}
-                  >
-                    {TRANSITION_TYPES.filter(t => t.type !== 'none').map(t => (
-                      <option key={t.type} value={t.type}>{t.label}</option>
-                    ))}
-                  </select>
+                  <Field label="Duration (s)" style={{ flex: 1 }}>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0.5"
+                      value={selectedState.duration || 2}
+                      onChange={(e) => updateState(selectedStateIndex, { duration: parseFloat(e.target.value) || 2 })}
+                      style={styles.input}
+                    />
+                  </Field>
                 </div>
-              )}
 
-              {scene.states.length > 1 && (
-                <button onClick={() => deleteState(selectedStateIndex)} style={{ ...styles.deleteButton, marginTop: '4px' }}>
-                  🗑️ Delete
-                </button>
-              )}
+                <Field label="Next State (Auto)">
+                  <select
+                    value={selectedState.transition?.nextState || ''}
+                    onChange={(e) => updateState(selectedStateIndex, {
+                      transition: {
+                        ...selectedState.transition,
+                        nextState: e.target.value || null,
+                        type: e.target.value ? (selectedState.transition?.type || 'fade') : 'none'
+                      }
+                    })}
+                    style={styles.input}
+                  >
+                    <option value="">None (Static)</option>
+                    {scene.states
+                      .filter((s, i) => i !== selectedStateIndex)
+                      .map(s => (
+                        <option key={s.name} value={s.name}>{s.name}</option>
+                      ))
+                    }
+                  </select>
+                </Field>
+
+                {selectedState.transition?.nextState && (
+                  <Field label="Effect">
+                    <select
+                      value={selectedState.transition?.type || 'fade'}
+                      onChange={(e) => updateState(selectedStateIndex, { transition: { ...selectedState.transition, type: e.target.value } })}
+                      style={styles.input}
+                    >
+                      {TRANSITION_TYPES.filter(t => t.type !== 'none').map(t => (
+                        <option key={t.type} value={t.type}>{t.label}</option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+
+                {scene.states.length > 1 && (
+                  <button onClick={() => deleteState(selectedStateIndex)} style={{ ...styles.deleteButton, marginTop: '4px', fontSize: '10px', padding: '6px' }}>
+                    🗑️ Delete State
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -447,9 +417,39 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '12px' }}>{layer.icon}</span>
-                        <span style={{ fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8' }}>{layer.name}</span>
+                        <span style={{ fontSize: '10px', fontWeight: '600', color: '#cbd5e1' }}>{layer.label}</span>
                       </div>
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>{entities.length}</span>
+
+                      {/* Add Entity Menu */}
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {ENTITY_TYPES.map(type => (
+                          <button
+                            key={type.type}
+                            onClick={() => {
+                              const newEntity = createDefaultEntity(type.type, layer.name)
+                              const newLayers = { ...selectedState.layers }
+                              newLayers[layer.name] = [...(newLayers[layer.name] || []), newEntity]
+                              updateState(selectedStateIndex, { layers: newLayers })
+                              const newIndex = newLayers[layer.name].length - 1
+                              setSelectedEntityKey(`${layer.name}:${newIndex}`)
+                            }}
+                            title={`Add ${type.label}`}
+                            style={{
+                              background: 'rgba(255,255,255,0.05)',
+                              border: '1px solid rgba(255,255,255,0.1)',
+                              borderRadius: '4px',
+                              padding: '2px 4px',
+                              fontSize: '10px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            {type.icon}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -501,6 +501,7 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
               states={scene.states}
               availableAssets={availableAssets}
               onOpenAssetManager={() => setShowAssetManager(true)}
+              onOpenLogic={onOpenLogic}
             />
           ) : (
             <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
@@ -608,6 +609,28 @@ export default function SceneEditor({ project, updateProject, sceneIndex, onBack
           }}
         />
       )}
+    </div>
+  )
+}
+
+/**
+ * Simple form field wrapper
+ */
+function Field({ label, children, style = {} }) {
+  return (
+    <div style={{ marginBottom: '10px', ...style }}>
+      <label style={{
+        display: 'block',
+        fontSize: '10px',
+        color: '#64748b',
+        marginBottom: '4px',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em'
+      }}>
+        {label}
+      </label>
+      {children}
     </div>
   )
 }

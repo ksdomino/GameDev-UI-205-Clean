@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { ANIMATION_TYPES } from '../data/defaultProject'
+import { getActors, getActor } from '../services/api'
 
 /**
  * Entity Property Editor - Edit properties for different entity types
@@ -11,8 +13,46 @@ export default function EntityPropertyEditor({
   scenes,
   states,
   availableAssets = { images: [], sprites: [], backgrounds: [], audio: [] },
-  onOpenAssetManager
+  onOpenAssetManager,
+  onOpenLogic
 }) {
+  const [actors, setActors] = useState([])
+  const [actorTemplate, setActorTemplate] = useState(null)
+
+  useEffect(() => {
+    loadActors()
+  }, [])
+
+  useEffect(() => {
+    if (entity.actorRef) {
+      loadActorTemplate(entity.actorRef)
+    } else {
+      setActorTemplate(null)
+    }
+  }, [entity.actorRef])
+
+  const loadActors = async () => {
+    try {
+      const result = await getActors()
+      if (result.success) {
+        setActors(result.actors || [])
+      }
+    } catch (err) {
+      console.error('Failed to load actors:', err)
+    }
+  }
+
+  const loadActorTemplate = async (actorId) => {
+    try {
+      const result = await getActor(actorId)
+      if (result.success) {
+        setActorTemplate(result.data)
+      }
+    } catch (err) {
+      console.error('Failed to load actor template:', err)
+    }
+  }
+
   if (!entity) return null
 
   const handleChange = (field, value) => {
@@ -21,6 +61,12 @@ export default function EntityPropertyEditor({
 
   const handleNestedChange = (parent, field, value) => {
     onChange({ [parent]: { ...entity[parent], [field]: value } })
+  }
+
+  const handleVariableChange = (key, value) => {
+    const newVars = { ...(entity.variables || {}) }
+    newVars[key] = value
+    onChange({ variables: newVars })
   }
 
   return (
@@ -44,6 +90,52 @@ export default function EntityPropertyEditor({
         <Field label="Y">
           <input type="number" value={entity.y || 0} onChange={(e) => handleChange('y', parseFloat(e.target.value) || 0)} style={styles.input} />
         </Field>
+      </div>
+
+      {/* Global Actor & Interactivity */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px', marginTop: '4px' }}>
+        <Field label="Global Actor">
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <select
+              value={entity.actorRef || ''}
+              onChange={(e) => handleChange('actorRef', e.target.value)}
+              style={{ ...styles.input, flex: 1 }}
+            >
+              <option value="">None (Static Entity)</option>
+              {actors.map(actor => (
+                <option key={actor.id} value={actor.id}>
+                  {actor.id} ({actor.type || 'General'})
+                </option>
+              ))}
+            </select>
+            {entity.actorRef && onOpenLogic && (
+              <button
+                onClick={() => onOpenLogic(entity.actorRef)}
+                style={{ ...styles.uploadButton, padding: '4px 8px' }}
+                title="Edit Actor Logic"
+              >
+                🔗
+              </button>
+            )}
+            <button
+              onClick={loadActors}
+              style={{ ...styles.addButton, padding: '4px 8px' }}
+              title="Refresh actor list"
+            >
+              ↻
+            </button>
+          </div>
+        </Field>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', cursor: 'pointer', padding: '4px 0' }}>
+          <input
+            type="checkbox"
+            checked={entity.interactive || false}
+            onChange={(e) => handleChange('interactive', e.target.checked)}
+            style={{ width: '14px', height: '14px' }}
+          />
+          <span style={{ fontSize: '11px', color: '#f8fafc', fontWeight: '500' }}>🖐️ Interactive (Captures Clicks)</span>
+        </label>
       </div>
 
       {/* Size (for shapes, buttons, sprites) */}
@@ -367,7 +459,7 @@ export default function EntityPropertyEditor({
       {/* Custom Variables */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px', marginTop: '4px' }}>
         <h4 style={{ fontSize: '11px', fontWeight: '600', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>🧩 Custom Variables</span>
+          <span>🧩 {actorTemplate ? 'Overridable Variables' : 'Custom Variables'}</span>
           <button
             onClick={() => {
               const currentVars = entity.variables || {}
@@ -380,65 +472,119 @@ export default function EntityPropertyEditor({
           </button>
         </h4>
 
-        {entity.variables && Object.entries(entity.variables).map(([key, value], i) => (
-          <div key={i} style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
-            <input
-              type="text"
-              value={key}
-              onChange={(e) => {
-                const newKey = e.target.value
-                if (newKey && !entity.variables[newKey]) {
-                  const newVars = { ...entity.variables }
-                  delete newVars[key]
-                  newVars[newKey] = value
-                  onChange({ variables: newVars })
-                }
-              }}
-              style={{ ...styles.input, width: '80px' }}
-              placeholder="key"
-            />
-            {typeof value === 'boolean' ? (
-              <input
-                type="checkbox"
-                checked={value}
-                onChange={(e) => {
-                  onChange({ variables: { ...entity.variables, [key]: e.target.checked } })
-                }}
-                style={{ marginTop: '6px' }}
-              />
-            ) : typeof value === 'number' ? (
-              <input
-                type="number"
-                value={value}
-                onChange={(e) => {
-                  onChange({ variables: { ...entity.variables, [key]: parseFloat(e.target.value) || 0 } })
-                }}
-                style={{ ...styles.input, flex: 1 }}
-              />
-            ) : (
+        {/* Inherited Variables (if using Global Actor) */}
+        {actorTemplate?.variables && Object.entries(actorTemplate.variables).map(([key, templateVar]) => {
+          const isOverridden = entity.variables && entity.variables[key] !== undefined
+          const value = isOverridden ? entity.variables[key] : (templateVar.default ?? templateVar)
+          const isBoolean = typeof value === 'boolean'
+          const isNumber = typeof value === 'number'
+
+          return (
+            <div key={`inherited-${key}`} style={{ display: 'flex', gap: '4px', marginBottom: '6px', opacity: isOverridden ? 1 : 0.7 }}>
+              <div style={{ width: '80px', display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '9px', color: isOverridden ? '#3b82f6' : '#94a3b8', fontWeight: isOverridden ? '600' : '400' }}>
+                  {key}
+                </span>
+                <span style={{ fontSize: '8px', color: '#64748b' }}>{isOverridden ? 'Overridden' : 'Inherited'}</span>
+              </div>
+
+              {isBoolean ? (
+                <input
+                  type="checkbox"
+                  checked={value}
+                  onChange={(e) => handleVariableChange(key, e.target.checked)}
+                  style={{ marginTop: '6px' }}
+                />
+              ) : isNumber ? (
+                <input
+                  type="number"
+                  value={value}
+                  onChange={(e) => handleVariableChange(key, parseFloat(e.target.value) || 0)}
+                  style={{ ...styles.input, flex: 1, borderColor: isOverridden ? '#3b82f6' : undefined }}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => handleVariableChange(key, e.target.value)}
+                  style={{ ...styles.input, flex: 1, borderColor: isOverridden ? '#3b82f6' : undefined }}
+                />
+              )}
+
+              {isOverridden && (
+                <button
+                  onClick={() => {
+                    const newVars = { ...entity.variables }
+                    delete newVars[key]
+                    onChange({ variables: newVars })
+                  }}
+                  style={{ ...styles.deleteButton, width: '24px', padding: '0', marginTop: '0', background: 'transparent' }}
+                  title="Reset to Inherited"
+                >
+                  ↺
+                </button>
+              )}
+            </div>
+          )
+        })}
+
+        {/* Entity-Only Variables */}
+        {entity.variables && Object.entries(entity.variables)
+          .filter(([key]) => !actorTemplate?.variables?.[key])
+          .map(([key, value], i) => (
+            <div key={`custom-${i}`} style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
               <input
                 type="text"
-                value={value}
+                value={key}
                 onChange={(e) => {
-                  onChange({ variables: { ...entity.variables, [key]: e.target.value } })
+                  const newKey = e.target.value
+                  if (newKey && !entity.variables[newKey]) {
+                    const newVars = { ...entity.variables }
+                    delete newVars[key]
+                    newVars[newKey] = value
+                    onChange({ variables: newVars })
+                  }
                 }}
-                style={{ ...styles.input, flex: 1 }}
+                style={{ ...styles.input, width: '80px' }}
+                placeholder="key"
               />
-            )}
-            <button
-              onClick={() => {
-                const newVars = { ...entity.variables }
-                delete newVars[key]
-                onChange({ variables: newVars })
-              }}
-              style={{ ...styles.deleteButton, width: '24px', padding: '0', marginTop: '0' }}
-              title="Remove"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-        {(!entity.variables || Object.keys(entity.variables).length === 0) && (
+              {typeof value === 'boolean' ? (
+                <input
+                  type="checkbox"
+                  checked={value}
+                  onChange={(e) => handleVariableChange(key, e.target.checked)}
+                  style={{ marginTop: '6px' }}
+                />
+              ) : typeof value === 'number' ? (
+                <input
+                  type="number"
+                  value={value}
+                  onChange={(e) => handleVariableChange(key, parseFloat(e.target.value) || 0)}
+                  style={{ ...styles.input, flex: 1 }}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => handleVariableChange(key, e.target.value)}
+                  style={{ ...styles.input, flex: 1 }}
+                />
+              )}
+              <button
+                onClick={() => {
+                  const newVars = { ...entity.variables }
+                  delete newVars[key]
+                  onChange({ variables: newVars })
+                }}
+                style={{ ...styles.deleteButton, width: '24px', padding: '0', marginTop: '0' }}
+                title="Remove"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+        {(!entity.variables || Object.keys(entity.variables).length === 0) && !actorTemplate && (
           <div style={{ fontSize: '10px', color: '#64748b', fontStyle: 'italic' }}>
             No custom variables
           </div>

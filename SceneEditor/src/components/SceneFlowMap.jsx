@@ -23,6 +23,9 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState(null) // { sceneName } or null
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState(null) // { x, y, sceneName } or null
+
   // Get scenes to display - filter by level if levelIndex is provided
   const getDisplayScenes = useCallback(() => {
     if (levelIndex !== undefined && project.levels?.[levelIndex]) {
@@ -237,6 +240,18 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
     e.stopPropagation()
     e.preventDefault()
     setDeleteConfirm({ sceneName })
+  }
+
+  // Handle right-click context menu
+  const handleContextMenu = (e, sceneName) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, sceneName })
+  }
+
+  // Close context menu
+  const closeContextMenu = () => {
+    setContextMenu(null)
   }
 
   // Confirm delete scene
@@ -495,6 +510,7 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
               onMouseDown={(e) => handleNodeMouseDown(e, node)}
               onMouseUp={handleNodeMouseUp}
               onDoubleClick={() => onOpenScene(project.scenes.findIndex(s => s.name === node.id))}
+              onContextMenu={(e) => handleContextMenu(e, node.id)}
               style={{
                 position: 'absolute',
                 left: node.x,
@@ -514,6 +530,34 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
                 pointerEvents: (draggingNode && !isDragging) ? 'none' : 'auto'
               }}
             >
+              {/* Red X delete button in top right corner */}
+              <button
+                onClick={(e) => handleDeleteClick(e, node.id)}
+                style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  width: '22px',
+                  height: '22px',
+                  background: '#ef4444',
+                  border: '2px solid #0a0f1a',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 20,
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)',
+                  lineHeight: 1
+                }}
+                title="Delete scene (or press Delete key)"
+              >
+                ✕
+              </button>
+
               {/* Node header - pointerEvents none so parent gets drag events */}
               <div style={{
                 backgroundColor: node.isStart ? '#6366f1' : '#334155',
@@ -527,23 +571,6 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
               }}>
                 <span>🎬</span>
                 <span style={{ fontSize: '14px', fontWeight: '600', flex: 1 }}>{node.id}</span>
-                {/* Delete button - pointerEvents auto so it can be clicked */}
-                <button
-                  onClick={(e) => handleDeleteClick(e, node.id)}
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    border: '1px solid rgba(239, 68, 68, 0.4)',
-                    borderRadius: '4px',
-                    color: '#fca5a5',
-                    fontSize: '12px',
-                    padding: '2px 6px',
-                    cursor: 'pointer',
-                    pointerEvents: 'auto'
-                  }}
-                  title="Delete scene"
-                >
-                  🗑️
-                </button>
               </div>
 
               {/* Node body - pointerEvents none so parent gets drag events */}
@@ -634,10 +661,76 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
             • <span style={{ color: '#ef4444' }}>●</span> Output (red) → click to delete<br />
             • <span style={{ color: '#10b981' }}>●</span> Input → drop here<br />
             • Double-click → edit scene<br />
-            • Click wire → delete
+            • Click wire → delete<br />
+            • <span style={{ color: '#ef4444' }}>✕</span> Red X / Right-click / Delete key → delete scene
           </div>
         </div>
       </div>
+
+      {/* Right-click Context Menu */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999
+          }}
+          onClick={closeContextMenu}
+          onContextMenu={(e) => { e.preventDefault(); closeContextMenu(); }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: contextMenu.y,
+              left: contextMenu.x,
+              background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+              minWidth: '160px',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              padding: '8px 12px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              fontSize: '11px',
+              color: '#94a3b8',
+              fontWeight: '500'
+            }}>
+              {contextMenu.sceneName}
+            </div>
+            <button
+              onClick={() => {
+                setDeleteConfirm({ sceneName: contextMenu.sceneName })
+                closeContextMenu()
+              }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: 'transparent',
+                border: 'none',
+                color: '#fca5a5',
+                fontSize: '13px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.2)'}
+              onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            >
+              <span style={{ color: '#ef4444' }}>✕</span>
+              Delete Scene
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Scene Confirmation Modal */}
       {deleteConfirm && (
@@ -670,20 +763,15 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
           >
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
-              <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', color: '#fff' }}>
-                Delete Scene?
-              </h3>
-              <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: '1.5' }}>
+              <p style={{ fontSize: '16px', color: '#fff', lineHeight: '1.5' }}>
                 Are you sure you want to delete <strong style={{ color: '#fca5a5' }}>"{deleteConfirm.sceneName}"</strong>?
-                <br />
-                <span style={{ color: '#ef4444' }}>This cannot be undone.</span>
               </p>
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 onClick={handleDeleteCancel}
                 style={{
-                  padding: '12px 24px',
+                  padding: '12px 32px',
                   background: 'rgba(255, 255, 255, 0.1)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   borderRadius: '8px',
@@ -693,12 +781,12 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
                   cursor: 'pointer'
                 }}
               >
-                Cancel
+                No
               </button>
               <button
                 onClick={handleDeleteConfirm}
                 style={{
-                  padding: '12px 24px',
+                  padding: '12px 32px',
                   background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                   border: 'none',
                   borderRadius: '8px',
@@ -709,7 +797,7 @@ export default function SceneFlowMap({ project, updateProject, onOpenScene, onBa
                   boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)'
                 }}
               >
-                Delete Scene
+                Yes
               </button>
             </div>
           </div>

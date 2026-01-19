@@ -29,6 +29,7 @@ export default function App() {
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0)
   const [selectedLevelIndex, setSelectedLevelIndex] = useState(0)
   const [selectedObjectId, setSelectedObjectId] = useState(null)
+  const [preselectedActorId, setPreselectedActorId] = useState(null) // For navigation shortcuts
   const [backendConnected, setBackendConnected] = useState(false)
   const [saveStatus, setSaveStatus] = useState('saved') // 'saved', 'saving', 'unsaved', 'error'
   const [lastError, setLastError] = useState(null)
@@ -242,6 +243,10 @@ export default function App() {
   const openAssetLibrary = () => setView('assetLibrary')
   const openGameDataHub = () => setView('gameDataHub')
   const openLevelSelector = () => setView('levelSelector')
+  const openActorLogic = (actorId) => {
+    setPreselectedActorId(actorId)
+    setView('gameDataHub')
+  }
   const openLevelEditor = (levelIndex) => {
     setSelectedLevelIndex(levelIndex)
     setView('flowmap')
@@ -352,6 +357,7 @@ export default function App() {
           sceneIndex={selectedSceneIndex}
           onBack={goBackFromEditor}
           onOpenDebug={openDebugPanel}
+          onOpenLogic={openActorLogic}
         />
       )}
 
@@ -368,6 +374,7 @@ export default function App() {
           project={project}
           updateProject={updateProject}
           onBack={openDashboard}
+          initialActorId={preselectedActorId}
         />
       )}
 

@@ -26,11 +26,17 @@ const ACTOR_TYPE_ICONS = {
     generic: '📦'
 };
 
+const ACTOR_TYPES = ['generic', 'ball', 'paddle', 'powerup', 'enemy', 'ui_button'];
+
 export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
     const [actors, setActors] = useState([]);
     const [logicSheets, setLogicSheets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newActorId, setNewActorId] = useState('');
+    const [newActorType, setNewActorType] = useState('generic');
+    const [createError, setCreateError] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -59,6 +65,28 @@ export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleCreateActor() {
+        if (!newActorId.trim()) {
+            setCreateError('Actor ID is required');
+            return;
+        }
+
+        try {
+            const { createActor } = await import('../services/api');
+            const result = await createActor(newActorId.trim(), newActorType);
+            if (result.success) {
+                setIsCreating(false);
+                setNewActorId('');
+                setCreateError(null);
+                loadData();
+            } else {
+                setCreateError(result.error);
+            }
+        } catch (err) {
+            setCreateError(err.message);
         }
     }
 
@@ -109,8 +137,44 @@ export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <h3 style={styles.title}>🎭 Actors ({actors.length})</h3>
-                <button onClick={loadData} style={styles.refreshButton} title="Refresh">↻</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        style={styles.addButton}
+                        title="Create New Actor"
+                    >
+                        + Create
+                    </button>
+                    <button onClick={loadData} style={styles.refreshButton} title="Refresh">↻</button>
+                </div>
             </div>
+
+            {isCreating && (
+                <div style={styles.createForm}>
+                    <input
+                        type="text"
+                        placeholder="Actor ID (e.g. LaserTrap)"
+                        value={newActorId}
+                        onChange={(e) => setNewActorId(e.target.value)}
+                        style={styles.formInput}
+                        autoFocus
+                    />
+                    <select
+                        value={newActorType}
+                        onChange={(e) => setNewActorType(e.target.value)}
+                        style={styles.formSelect}
+                    >
+                        {ACTOR_TYPES.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                        ))}
+                    </select>
+                    <div style={styles.formActions}>
+                        <button onClick={handleCreateActor} style={styles.saveButton}>Create</button>
+                        <button onClick={() => setIsCreating(false)} style={styles.cancelButton}>Cancel</button>
+                    </div>
+                    {createError && <div style={styles.formError}>{createError}</div>}
+                </div>
+            )}
 
             <div style={styles.list}>
                 {actors.map(actor => {
@@ -121,56 +185,29 @@ export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
 
                     return (
                         <div
-                            key={actor.id}
                             style={{
                                 ...styles.actorCard,
                                 borderColor: isSelected ? typeColor : 'transparent',
                                 backgroundColor: isSelected ? `${typeColor}20` : '#1e293b'
                             }}
                             onClick={() => onSelectActor?.(actor)}
+                            title={actor.description || actor.id}
                         >
                             <div style={styles.actorHeader}>
                                 <span style={styles.actorIcon}>{typeIcon}</span>
                                 <span style={styles.actorName}>{actor.id}</span>
+                            </div>
+
+                            <div style={styles.actorMeta}>
                                 <span style={{ ...styles.actorType, backgroundColor: typeColor }}>
                                     {actor.type}
                                 </span>
-                            </div>
-
-                            {actor.description && (
-                                <div style={styles.actorDescription}>{actor.description}</div>
-                            )}
-
-                            <div style={styles.actorMeta}>
-                                <span style={styles.metaItem}>
-                                    📊 {Object.keys(actor.variables || {}).length} vars
-                                </span>
                                 {logicSheet && (
-                                    <span style={styles.metaItem}>
-                                        🔗 {logicSheet.nodeCount} nodes
-                                    </span>
-                                )}
-                                {actor.tags?.length > 0 && (
-                                    <span style={styles.metaItem}>
-                                        🏷️ {actor.tags.join(', ')}
+                                    <span style={styles.metaItem} title={`${logicSheet.nodeCount} logic nodes`}>
+                                        🔗 {logicSheet.nodeCount}
                                     </span>
                                 )}
                             </div>
-
-                            {/* View Logic Button */}
-                            {logicSheet && onOpenLogic && (
-                                <div style={styles.actorActions}>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onOpenLogic(actor.id);
-                                        }}
-                                        style={styles.viewLogicButton}
-                                    >
-                                        🔗 View Logic
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     );
                 })}
@@ -181,6 +218,75 @@ export function ActorList({ onSelectActor, selectedActorId, onOpenLogic }) {
 
 
 const styles = {
+    // ...existing container styles...
+    createForm: {
+        padding: '12px',
+        backgroundColor: '#1e293b',
+        borderBottom: '1px solid #334155',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+    },
+    formInput: {
+        width: '100%',
+        padding: '8px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #334155',
+        borderRadius: '4px',
+        color: '#f1f5f9',
+        fontSize: '13px'
+    },
+    formSelect: {
+        width: '100%',
+        padding: '8px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #334155',
+        borderRadius: '4px',
+        color: '#f1f5f9',
+        fontSize: '13px',
+        textTransform: 'capitalize'
+    },
+    formActions: {
+        display: 'flex',
+        gap: '8px'
+    },
+    saveButton: {
+        flex: 1,
+        backgroundColor: '#3b82f6',
+        color: '#fff',
+        border: 'none',
+        padding: '8px',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: '600'
+    },
+    cancelButton: {
+        flex: 1,
+        backgroundColor: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid #334155',
+        padding: '8px',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '13px'
+    },
+    formError: {
+        color: '#ef4444',
+        fontSize: '11px',
+        marginTop: '4px'
+    },
+    addButton: {
+        backgroundColor: '#3b82f6',
+        color: '#fff',
+        border: 'none',
+        padding: '4px 10px',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '600',
+        transition: 'all 0.2s'
+    },
     container: {
         backgroundColor: '#0f172a',
         borderRadius: '8px',
@@ -217,53 +323,61 @@ const styles = {
     list: {
         flex: 1,
         overflow: 'auto',
-        padding: '8px'
+        padding: '12px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+        gap: '12px',
+        alignContent: 'start'
     },
     actorCard: {
-        padding: '12px',
-        borderRadius: '6px',
-        marginBottom: '8px',
+        padding: '10px',
+        borderRadius: '8px',
         cursor: 'pointer',
         border: '2px solid transparent',
-        transition: 'all 0.2s'
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
     },
     actorHeader: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        marginBottom: '4px'
+        gap: '6px',
     },
     actorIcon: {
-        fontSize: '18px'
+        fontSize: '16px'
     },
     actorName: {
         flex: 1,
-        fontWeight: '600',
+        fontWeight: '700',
         color: '#f1f5f9',
-        fontSize: '14px'
+        fontSize: '13px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
     },
     actorType: {
-        padding: '2px 8px',
+        padding: '1px 6px',
         borderRadius: '4px',
-        fontSize: '11px',
-        fontWeight: '500',
+        fontSize: '9px',
+        fontWeight: '700',
         color: '#fff',
-        textTransform: 'uppercase'
-    },
-    actorDescription: {
-        fontSize: '12px',
-        color: '#94a3b8',
-        marginBottom: '8px',
-        lineHeight: '1.4'
+        textTransform: 'uppercase',
+        letterSpacing: '0.02em'
     },
     actorMeta: {
         display: 'flex',
-        gap: '12px',
-        flexWrap: 'wrap'
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 'auto'
     },
     metaItem: {
-        fontSize: '11px',
-        color: '#64748b'
+        fontSize: '10px',
+        color: '#94a3b8',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '2px'
     },
     loading: {
         padding: '20px',
@@ -282,25 +396,6 @@ const styles = {
         color: '#64748b',
         fontSize: '13px',
         lineHeight: '1.6'
-    },
-    actorActions: {
-        marginTop: '10px',
-        paddingTop: '10px',
-        borderTop: '1px solid #334155'
-    },
-    viewLogicButton: {
-        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-        border: 'none',
-        color: '#fff',
-        padding: '6px 12px',
-        borderRadius: '4px',
-        fontSize: '12px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        transition: 'all 0.2s'
     }
 };
 

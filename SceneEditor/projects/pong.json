@@ -2,7 +2,7 @@
   "name": "Pong",
   "version": "1.0.0",
   "createdAt": "2026-01-17T00:00:00Z",
-  "updatedAt": "2026-01-18T21:17:30.266Z",
+  "updatedAt": "2026-01-19T09:30:30.876Z",
   "canvas": {
     "width": 1080,
     "height": 1920,
@@ -19,7 +19,9 @@
         "Title_Scene_2",
         "Title_Scene_3",
         "Title_Scene_4",
-        "Title_Scene_1"
+        "Title_Scene_1",
+        "Title_Scene_5",
+        "Title_Scene_6"
       ]
     }
   ],
@@ -316,13 +318,106 @@
             "BG_FAR": [],
             "BG_NEAR": [],
             "VIDEO_IMAGE": [],
+            "SHAPES": [
+              {
+                "type": "shape",
+                "id": "shape_1",
+                "shape": "rect",
+                "x": 440,
+                "y": 860,
+                "width": 200,
+                "height": 200,
+                "color": "#6366f1",
+                "fill": true,
+                "strokeWidth": 2,
+                "alpha": 1,
+                "interactive": false,
+                "actorRef": "Ball"
+              },
+              {
+                "type": "sprite",
+                "id": "sprite_3",
+                "assetId": "",
+                "x": 540,
+                "y": 960,
+                "width": 200,
+                "height": 200,
+                "rotation": 0,
+                "alpha": 1,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
+              },
+              {
+                "type": "sprite",
+                "id": "sprite_4",
+                "assetId": "",
+                "x": 540,
+                "y": 960,
+                "width": 200,
+                "height": 200,
+                "rotation": 0,
+                "alpha": 1,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
+              }
+            ],
+            "SPRITES": [],
+            "TEXT": [
+              {
+                "type": "sprite",
+                "id": "sprite_2",
+                "assetId": "",
+                "x": 540,
+                "y": 960,
+                "width": 200,
+                "height": 200,
+                "rotation": 0,
+                "alpha": 1,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
+              }
+            ],
+            "UI_BUTTONS": [
+              {
+                "type": "sprite",
+                "id": "sprite_1",
+                "assetId": "",
+                "x": 588,
+                "y": 308,
+                "width": 200,
+                "height": 200,
+                "rotation": 0,
+                "alpha": 1,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
+              }
+            ]
+          },
+          "transition": {
+            "type": "none"
+          }
+        },
+        {
+          "name": "STATE_2",
+          "duration": 2,
+          "clearLayers": true,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
             "SHAPES": [],
             "SPRITES": [],
             "TEXT": [],
             "UI_BUTTONS": []
           },
           "transition": {
-            "type": "none"
+            "type": "timer",
+            "duration": 2,
+            "nextState": null
           }
         }
       ],
@@ -459,7 +554,22 @@
                 "alpha": 0.2
               }
             ],
-            "SPRITES": [],
+            "SPRITES": [
+              {
+                "type": "sprite",
+                "id": "sprite_1",
+                "assetId": "",
+                "x": 540,
+                "y": 960,
+                "width": 200,
+                "height": 200,
+                "rotation": 0,
+                "alpha": 1,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
+              }
+            ],
             "TEXT": [
               {
                 "type": "text",
@@ -502,7 +612,9 @@
                 "onClick": {
                   "action": "switchScene",
                   "target": "L1_Scene_1"
-                }
+                },
+                "actorRef": "Ball",
+                "variables": {}
               }
             ]
           },
@@ -528,6 +640,109 @@
           ]
         ]
       }
+    },
+    {
+      "name": "Title_Scene_5",
+      "isStartScene": false,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [
+              {
+                "type": "shape",
+                "id": "shape_1",
+                "shape": "rect",
+                "x": 440,
+                "y": 860,
+                "width": 200,
+                "height": 200,
+                "color": "#6366f1",
+                "fill": true,
+                "strokeWidth": 2,
+                "alpha": 1,
+                "actorRef": ""
+              }
+            ],
+            "SPRITES": [
+              {
+                "type": "sprite",
+                "id": "sprite_1",
+                "assetId": "",
+                "x": 540,
+                "y": 960,
+                "width": 200,
+                "height": 200,
+                "rotation": 0,
+                "alpha": 1,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
+              }
+            ],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "name": "Title_Scene_6",
+      "isStartScene": false,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [
+              {
+                "type": "shape",
+                "id": "shape_1",
+                "shape": "rect",
+                "x": 440,
+                "y": 860,
+                "width": 200,
+                "height": 200,
+                "color": "#6366f1",
+                "fill": true,
+                "strokeWidth": 2,
+                "alpha": 1,
+                "actorRef": "(General)"
+              }
+            ],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [],
+            "SPRITES": [],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
     }
   ],
   "assets": {

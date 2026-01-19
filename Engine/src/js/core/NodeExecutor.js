@@ -138,7 +138,13 @@ export class NodeExecutor {
         const connectionMap = this.buildConnectionMap(actor.logicSheet.connections);
 
         // Execute recursively following execution connections
-        this.executeNode(actorId, startNode, context, connectionMap, actor.logicSheet.nodes);
+        // Pass connectionMap and nodes in context for data input resolution
+        const execContext = {
+            ...context,
+            _connectionMap: connectionMap,
+            _allNodes: actor.logicSheet.nodes
+        };
+        this.executeNode(actorId, startNode, execContext, connectionMap, actor.logicSheet.nodes);
     }
 
     /**
@@ -164,7 +170,15 @@ export class NodeExecutor {
         const result = this.executeNodeAction(actorId, node, context);
 
         // Find and execute connected nodes via execution outputs
-        const execOutputs = (node.outputs || []).filter(o => o.type === 'execution');
+        let execOutputs = (node.outputs || []).filter(o => o.type === 'execution');
+
+        // Special handling for Branch nodes - only follow the matching branch
+        if (node.subtype === 'Branch') {
+            const branchResult = result.branchResult;
+            execOutputs = execOutputs.filter(o =>
+                (branchResult && o.id === 'true') || (!branchResult && o.id === 'false')
+            );
+        }
 
         for (const output of execOutputs) {
             const key = `${node.id}:${output.id}`;
@@ -303,8 +317,31 @@ export class NodeExecutor {
 
         switch (node.subtype) {
             case 'Branch':
-                // The branch result determines which output to follow
-                return { branchResult: !!context.condition };
+                // Get the condition value - check context first, then resolve from data input
+                let condition = context.condition;
+
+                // If condition not in context, try to resolve from connected data node
+                if (condition === undefined && context._connectionMap && context._allNodes) {
+                    // Find nodes connected to the 'condition' input
+                    for (const [key, targets] of context._connectionMap) {
+                        for (const target of targets) {
+                            if (target.nodeId === node.id && target.inputId === 'condition') {
+                                // Found a connection to our condition input
+                                // Parse the key to get source node and output
+                                const [sourceNodeId, sourceOutputId] = key.split(':');
+                                const sourceNode = context._allNodes.find(n => n.id === sourceNodeId);
+                                if (sourceNode) {
+                                    // Execute the source node to get its value
+                                    const sourceResult = this.executeNodeAction(actorId, sourceNode, context);
+                                    condition = sourceResult.value;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                console.log(`[NodeExecutor] Branch condition:`, condition);
+                return { branchResult: !!condition };
 
             case 'Delay':
                 // Queue delayed execution (simplified - would need proper timer)

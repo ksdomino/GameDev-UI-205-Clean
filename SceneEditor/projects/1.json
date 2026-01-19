@@ -1,0 +1,107 @@
+{
+  "name": "1",
+  "description": "A new mobile game",
+  "version": "0.1.0",
+  "createdAt": "2026-01-18T22:26:04.935Z",
+  "updatedAt": "2026-01-18T23:20:49.551Z",
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "startLevel": 0,
+  "levels": [
+    {
+      "id": "level_0",
+      "name": "Title",
+      "number": 0,
+      "description": "Main menu and intro",
+      "sceneNames": [
+        "Title_Scene_1"
+      ]
+    },
+    {
+      "id": "level_1",
+      "name": "Level 1",
+      "number": 1,
+      "description": "First gameplay level",
+      "sceneNames": [
+        "L1_Scene_1"
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "name": "Title_Scene_1",
+      "isStartScene": true,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [],
+            "SPRITES": [],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "name": "L1_Scene_1",
+      "isStartScene": false,
+      "description": "",
+      "assets": {
+        "images": [],
+        "audio": []
+      },
+      "states": [
+        {
+          "name": "MAIN",
+          "duration": null,
+          "clearLayers": false,
+          "layers": {
+            "BG_FAR": [],
+            "BG_NEAR": [],
+            "VIDEO_IMAGE": [],
+            "SHAPES": [],
+            "SPRITES": [],
+            "TEXT": [],
+            "UI_BUTTONS": []
+          },
+          "transition": {
+            "type": "none"
+          }
+        }
+      ],
+      "transitions": []
+    }
+  ],
+  "assets": {
+    "images": [],
+    "audio": [],
+    "fonts": []
+  },
+  "gameObjects": [],
+  "build": {
+    "target": "mobile",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "useCustomScenes": false
+}

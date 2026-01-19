@@ -1316,6 +1316,42 @@ app.post('/api/data/logic/:actorId', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/data/actors - Create a new actor
+ */
+app.post('/api/data/actors', async (req, res) => {
+  try {
+    const { id, type } = req.body;
+    if (!id || !type) {
+      return res.status(400).json({ success: false, error: 'Missing actor ID or type' });
+    }
+
+    const actorsDir = path.join(ENGINE_DATA_DIR, 'actors');
+    await fs.mkdir(actorsDir, { recursive: true });
+
+    const actorPath = path.join(actorsDir, `${id}.json`);
+
+    // Check if exists
+    try {
+      await fs.access(actorPath);
+      return res.status(400).json({ success: false, error: 'Actor already exists' });
+    } catch (e) { /* doesn't exist, proceed */ }
+
+    const actor = {
+      id,
+      type,
+      description: `Default ${type} actor`,
+      variables: {}
+    };
+
+    await fs.writeFile(actorPath, JSON.stringify(actor, null, 2));
+
+    res.json({ success: true, message: `Actor ${id} created`, actor });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 // Start server
 ensureDirectories().then(() => {

@@ -304,6 +304,22 @@ export async function getActors() {
 }
 
 /**
+ * Create a new actor
+ */
+export async function createActor(id, type) {
+  try {
+    const response = await fetch(`${API_BASE}/data/actors`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type })
+    });
+    return await response.json();
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get a specific actor by ID
  */
 export async function getActor(actorId) {

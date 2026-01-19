@@ -10,14 +10,14 @@ import ActorList from './ActorList';
 import NodeEditor from './NodeEditor';
 import VariableEditor from './VariableEditor';
 
-export function GameDataPanel({ onSelectActor }) {
+export function GameDataPanel({ onSelectActor, initialActorId }) {
     const [gameData, setGameData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedActorId, setSelectedActorId] = useState(null);
+    const [selectedActorId, setSelectedActorId] = useState(initialActorId || null);
     const [selectedActorData, setSelectedActorData] = useState(null);
-    const [showNodeEditor, setShowNodeEditor] = useState(false);
-    const [nodeEditorActorId, setNodeEditorActorId] = useState(null);
+    const [showNodeEditor, setShowNodeEditor] = useState(!!initialActorId);
+    const [nodeEditorActorId, setNodeEditorActorId] = useState(initialActorId || null);
 
     useEffect(() => {
         loadGameData();
@@ -47,14 +47,14 @@ export function GameDataPanel({ onSelectActor }) {
         // Load actor variables data
         const result = await getActor(actor.id);
         if (result.success) {
-            setSelectedActorData(result.actor);
+            setSelectedActorData(result.data);
         } else {
             // Try loading .variables.json file directly
             try {
-                const res = await fetch(`http://localhost:5176/api/actors/${actor.id}`);
+                const res = await fetch(`http://localhost:5176/api/data/actors/${actor.id}`);
                 const data = await res.json();
                 if (data.success) {
-                    setSelectedActorData(data.actor);
+                    setSelectedActorData(data.data);
                 }
             } catch (e) {
                 setSelectedActorData(null);

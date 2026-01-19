@@ -194,7 +194,7 @@ export default function LevelSelector({ project, updateProject, onBack, onEditLe
                                 style={styles.deleteButton}
                                 title="Delete level"
                             >
-                                🗑️
+                                <div style={styles.deleteBox}>✕</div>
                             </button>
                         </div>
 
@@ -496,13 +496,23 @@ const styles = {
         transition: 'all 0.2s'
     },
     deleteButton: {
-        padding: '6px 10px',
-        background: 'rgba(239, 68, 68, 0.2)',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
-        borderRadius: '6px',
-        color: '#fca5a5',
-        fontSize: '11px',
+        padding: '0',
+        background: 'none',
+        border: 'none',
         cursor: 'pointer'
+    },
+    deleteBox: {
+        width: '24px',
+        height: '24px',
+        background: '#ef4444',
+        borderRadius: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: '12px',
+        transition: 'all 0.2s'
     },
     input: {
         width: '100%',
